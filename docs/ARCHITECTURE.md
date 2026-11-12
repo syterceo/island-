@@ -123,6 +123,14 @@ That element can only be clipped by a border radius, so glass uses circular corn
 
 Files dragged over the window open the upload drop target (`hooks/useFileDrop.ts`).
 
+Identity: `settings.roundness` pulls every radius from a full pill towards a tight rounded tab,
+and each definition may declare a `tint`. The shell exposes it as `--island-tint` (a registered,
+transitioned colour) and uses it for the edge light along the bottom and for the glow. Apps the
+island can show are listed in `apps.ts` with their brand colour.
+
+Content animates with tweens, never springs, so the last frame of a swap is the resting frame;
+only the shape is a spring. Idle indicators change opacity or colour, not size or position.
+
 Each view is wrapped in a motion element that moves through the variant labels in
 `motion/variants.ts` (`initial` -> `enter`, then `exit`). Motion elements inside a view that
 declare variants with the same labels animate in lockstep with the swap; this is how content

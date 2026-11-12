@@ -1,3 +1,10 @@
+/* Registered as a colour so that changes of the island tint can be transitioned. */
+@property --island-tint {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: transparent;
+}
+
 /* Design tokens. Everything visual in the island and the playground reads from here. */
 :root {
   --font-sans: 'Manrope Variable', 'Manrope', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
@@ -20,6 +27,7 @@
   --island-orange: #ff9f0a;
   /* The island shell overrides this from settings. */
   --island-accent: var(--island-fg);
+  --island-tint: transparent;
 
   /* Island type scale. */
   --island-text-xs: 11px;

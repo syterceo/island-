@@ -100,6 +100,7 @@ export default defineLiveActivity<TimerData>({
   title: 'Timer',
   description: 'Countdown with a progress ring, pause and cancel.',
   icon: TimerIcon,
+  tint: '#ff9f0a',
   defaultData: preset(5 * 60_000),
   compact: { size: { width: 126, height: COMPACT_HEIGHT }, Component: Compact },
   minimal: Minimal,

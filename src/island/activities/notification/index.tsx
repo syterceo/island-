@@ -1,69 +1,55 @@
-import { BellIcon, CalendarBlankIcon, ChatCircleIcon, EnvelopeSimpleIcon, type Icon } from '@phosphor-icons/react';
-import { motion } from 'motion/react';
+import { BellIcon } from '@phosphor-icons/react';
+import { appOf, type AppId } from '../../apps';
 import { defineTransient } from '../../define';
-import { fx, spring } from '../../motion/springs';
 import type { ActivityViewProps } from '../../types';
-import { ui } from '../../ui/kit';
-
-type App = 'message' | 'mail' | 'calendar';
+import { AppTile, cx, ui } from '../../ui/kit';
 
 interface NotificationData {
-  app: App;
+  app: AppId;
   title: string;
   body: string;
 }
 
-const APPS: Record<App, { icon: Icon; background: string }> = {
-  message: { icon: ChatCircleIcon, background: 'linear-gradient(160deg, #5df27c, #1eb341)' },
-  mail: { icon: EnvelopeSimpleIcon, background: 'linear-gradient(160deg, #57b7ff, #1c6dff)' },
-  calendar: { icon: CalendarBlankIcon, background: 'linear-gradient(160deg, #ff7a70, #f0362a)' },
-};
-
 function View({ data }: ActivityViewProps<NotificationData>) {
-  const app = APPS[data.app] ?? APPS.message;
-  const AppIcon = app.icon;
   return (
-    <div className={ui.expanded} style={{ gap: 12, padding: '0 20px 0 14px' }}>
-      <motion.span
-        className={ui.tile}
-        style={{ width: 40, height: 40, borderRadius: 12, background: app.background }}
-        initial={{ scale: fx.scale(0.5), rotate: fx.offset(-18) }}
-        animate={{ scale: 1, rotate: 0 }}
-        transition={spring('bouncy', { delay: 0.08 })}
-      >
-        <AppIcon size={22} weight="fill" />
-      </motion.span>
-      <div className={`${ui.stack} ${ui.grow}`}>
-        <span className={ui.title}>{data.title}</span>
+    <div className={ui.expanded} style={{ gap: 12, padding: '0 16px 0 13px' }}>
+      <AppTile app={data.app} size={38} />
+      <div className={cx(ui.stack, ui.grow)}>
+        <span className={ui.row} style={{ gap: 8 }}>
+          <span className={cx(ui.title, ui.grow)}>{data.title}</span>
+          <span className={ui.caption} style={{ color: 'var(--island-tint)' }}>
+            {appOf(data.app).name}
+          </span>
+        </span>
         <span className={ui.sub}>{data.body}</span>
       </div>
-      <span className={ui.sub} style={{ color: 'var(--island-fg-3)', flex: 'none' }}>
-        now
-      </span>
     </div>
   );
 }
 
-const PRESETS: Record<App, NotificationData> = {
-  message: { app: 'message', title: 'Anna Petrova', body: 'The new animations look great. Ship it?' },
+const PRESETS: Record<string, NotificationData> = {
+  telegram: { app: 'telegram', title: 'Anna Petrova', body: 'The new animations look great. Ship it?' },
+  discord: { app: 'discord', title: '#design-review', body: 'Max: pushed the new island build, take a look' },
+  steam: { app: 'steam', title: 'Kira is now playing', body: 'Hades II · Join game' },
   mail: { app: 'mail', title: 'Weekly report', body: 'Your dictation stats for this week are ready' },
-  calendar: { app: 'calendar', title: 'Design review', body: 'Starts in 10 minutes · Meeting room 3' },
 };
 
 export default defineTransient<NotificationData>({
   kind: 'notification',
   title: 'Notification',
-  description: 'A two line banner from an app. Hover to hold it, click to dismiss.',
+  description: 'A banner from an app, tinted with its colour. Hover to hold it, click to dismiss.',
   icon: BellIcon,
-  defaultData: PRESETS.message,
-  view: { size: { width: 360, height: 68, radius: 28 }, Component: View },
+  tint: (data) => appOf(data.app).color,
+  defaultData: PRESETS.telegram,
+  view: { size: { width: 372, height: 64, radius: 28 }, Component: View },
   duration: 3600,
   coalesce: false,
   demo: {
     presets: [
-      { label: 'Message', data: PRESETS.message },
+      { label: 'Telegram', data: PRESETS.telegram },
+      { label: 'Discord', data: PRESETS.discord },
+      { label: 'Steam', data: PRESETS.steam },
       { label: 'Mail', data: PRESETS.mail },
-      { label: 'Calendar', data: PRESETS.calendar },
     ],
   },
 });
