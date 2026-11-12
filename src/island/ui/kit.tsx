@@ -16,13 +16,16 @@ const riseVariants = {
     opacity: 1,
     y: 0,
     // A tween lands exactly on its target, so the last frame of the entrance is the resting frame.
-    transition: tween(0.42, { delay: 0.07 + index * 0.04 }),
+    // Short enough that the last item arrives together with the shape.
+    transition: tween(0.34, { delay: 0.04 + index * 0.03 }),
   }),
 };
 
+type RiseProps = Omit<HTMLMotionProps<'div'>, 'className'> & { i?: number; className?: string };
+
 /** Rises into place with the view swap. `i` staggers siblings. */
-export function Rise({ i = 0, ...props }: HTMLMotionProps<'div'> & { i?: number }) {
-  return <motion.div variants={riseVariants} custom={i} {...props} />;
+export function Rise({ i = 0, className, ...props }: RiseProps) {
+  return <motion.div variants={riseVariants} custom={i} className={cx(css.rise, className)} {...props} />;
 }
 
 interface SwapProps {
@@ -37,6 +40,8 @@ interface SwapProps {
   truncate?: boolean;
   /** Which edge stays put while the width changes. */
   align?: 'start' | 'center' | 'end';
+  /** Soft focus while swapping. Off for small things that change often, like digits. */
+  blur?: boolean;
   /** Glide to the width of the new content. Off for contents of one fixed width. */
   fit?: boolean;
 }
@@ -45,7 +50,18 @@ interface SwapProps {
  * Crossfades between contents in one grid cell. The cell glides to the width of the new content,
  * so neither the content nor its neighbours jump when the old content is removed.
  */
-export function Swap({ id, children, className, style, dy = 6, truncate, align = 'start', fit = true }: SwapProps) {
+export function Swap({
+  id,
+  children,
+  className,
+  style,
+  dy = 6,
+  truncate,
+  align = 'start',
+  fit = true,
+  blur = true,
+}: SwapProps) {
+  const soft = (px: number) => (blur ? fx.blur(px) : undefined);
   const box = useRef<HTMLSpanElement>(null);
   const item = useRef<HTMLSpanElement>(null);
   const measured = useRef<number | null>(null);
@@ -76,9 +92,9 @@ export function Swap({ id, children, className, style, dy = 6, truncate, align =
           key={id}
           ref={item}
           className={cx(css.swapItem, truncate && css.truncate)}
-          initial={{ opacity: 0, y: fx.offset(dy), filter: fx.blur(4) }}
-          animate={{ opacity: 1, y: 0, filter: fx.blur(0), transition: tween(0.3) }}
-          exit={{ opacity: 0, y: fx.offset(-dy), filter: fx.blur(4), transition: tween(0.16) }}
+          initial={{ opacity: 0, y: fx.offset(dy), filter: soft(4) }}
+          animate={{ opacity: 1, y: 0, filter: soft(0), transition: tween(0.3) }}
+          exit={{ opacity: 0, y: fx.offset(-dy), filter: soft(4), transition: tween(0.16) }}
         >
           {children}
         </motion.span>
@@ -94,7 +110,7 @@ export function Digits({ value, className, style }: { value: string; className?:
     <span className={cx(css.digits, className)} style={style} aria-label={value}>
       {chars.map((char, index) => (
         // Keyed from the right, so the seconds keep their slot when a digit appears on the left.
-        <Swap key={chars.length - index} id={char} dy={7} fit={false}>
+        <Swap key={chars.length - index} id={char} dy={5} fit={false} blur={false}>
           {char}
         </Swap>
       ))}
@@ -150,10 +166,22 @@ interface RingProps {
   size?: number;
   stroke?: number;
   color?: string;
+  /**
+   * Seconds of real time until the next update. The ring then moves linearly for exactly that
+   * long, so a clock that updates once a second sweeps without stopping between updates.
+   */
+  glide?: number;
   children?: ReactNode;
 }
 
-export function ProgressRing({ value, size = 20, stroke = 3, color = 'var(--island-accent)', children }: RingProps) {
+export function ProgressRing({
+  value,
+  size = 20,
+  stroke = 3,
+  color = 'var(--island-accent)',
+  glide,
+  children,
+}: RingProps) {
   const radius = (size - stroke) / 2;
   const length = 2 * Math.PI * radius;
   const clamped = Math.min(1, Math.max(0, value));
@@ -172,7 +200,7 @@ export function ProgressRing({ value, size = 20, stroke = 3, color = 'var(--isla
           strokeDasharray={length}
           initial={false}
           animate={{ strokeDashoffset: length * (1 - clamped) }}
-          transition={spring('gentle', { visualDuration: 0.4 })}
+          transition={glide ? { type: 'tween', ease: 'linear', duration: glide } : tween(0.4)}
         />
       </svg>
       {children && <span className={css.ringCenter}>{children}</span>}

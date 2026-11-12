@@ -27,11 +27,17 @@ import { useGestures } from './useGestures';
 /*
  * Morph engine.
  *
- * The silhouette is one SVG path drawn on a fixed canvas, and the same path clips the content.
- * Springs drive plain numbers (width, height, radius, offset, bubble) and the path is rebuilt
- * from them every frame. Views never take part in layout while the shape moves: each one sits
- * at its final size at a fixed position, so text stays on whole pixels and nothing reflows,
- * snaps or re-rasterises when an animation ends.
+ * Springs drive plain numbers (width, height, radius, offset, bubble). Every frame they are
+ * turned into the silhouette, an SVG path on a fixed canvas, and into a rounded box that clips
+ * the content. Three rules keep it steady:
+ *
+ * - Views never take part in layout while the shape moves. Each sits at its final size at a
+ *   fixed whole pixel position, and the clip box cancels its own offset for them.
+ * - Only the edges of the shape may overshoot. Everything that carries content (the sideways
+ *   shift, the bubble) is critically damped, and content itself fades and rises with tweens,
+ *   so nothing passes its resting place and comes back.
+ * - Content is clipped by a rounded box, not by the path. The compositor clips rounded boxes
+ *   directly, while a path clip is redrawn as a mask on every frame.
  */
 
 const MARGIN_X = 120;
@@ -42,7 +48,11 @@ const CANVAS_H = MAX_SIZE.height + PAD_TOP + PAD_BOTTOM;
 const CX = CANVAS_W / 2;
 const EAR = 7;
 const MIN_RADIUS = 6;
+const LIGHT_WIDTH = 400;
 const LIGHT_HEIGHT = 22;
+// The shadow box sits a little inside the shape, so it never shows between the smoothed
+// corners of the silhouette and its own circular ones.
+const SHADOW_INSET = 2;
 
 type GeoKey = 'w' | 'h' | 'r' | 'x' | 'att' | 'bx' | 'bs' | 'br';
 type Geometry = Record<GeoKey, MotionValue<number>>;
@@ -57,61 +67,37 @@ function useGeometry(initial: Record<GeoKey, number>): Geometry {
   return ref.current;
 }
 
-interface Morph {
-  /** Scale the incoming view starts from. */
-  enter: number;
-  /** Scale the outgoing view leaves towards. */
-  exit: number;
-}
-
-// Content follows the shape part of the way, so a swap reads as one material changing size.
-const follow = (ratio: number) => Math.min(1.1, Math.max(0.86, 1 + (ratio - 1) * 0.35));
-
-// Content uses tweens: they land exactly on their target, so the last frame of a swap is the
-// resting frame and nothing creeps into place afterwards. Only the shape is a spring.
 const viewVariants = {
-  [VIEW_STATE.initial]: (morph: Morph) => ({ opacity: 0, scale: fx.scale(morph.enter), filter: fx.blur(10) }),
+  [VIEW_STATE.initial]: () => ({ opacity: 0, filter: fx.blur(8) }),
   [VIEW_STATE.enter]: () => ({
     opacity: 1,
-    scale: 1,
     filter: fx.blur(0),
-    transition: {
-      opacity: tween(0.24, { delay: 0.06 }),
-      filter: tween(0.3, { delay: 0.04 }),
-      scale: tween(0.4, { delay: 0.02 }),
-    },
+    transition: { opacity: tween(0.22, { delay: 0.05 }), filter: tween(0.26, { delay: 0.04 }) },
   }),
-  [VIEW_STATE.exit]: (morph: Morph) => ({
+  [VIEW_STATE.exit]: () => ({
     opacity: 0,
-    scale: fx.scale(morph.exit),
-    filter: fx.blur(10),
-    transition: { opacity: tween(0.14), filter: tween(0.18), scale: tween(0.22) },
+    filter: fx.blur(8),
+    transition: { opacity: tween(0.13), filter: tween(0.16) },
   }),
 };
 
 const bubbleVariants = {
-  [VIEW_STATE.initial]: () => ({ opacity: 0, scale: fx.scale(0.7), filter: fx.blur(6) }),
-  [VIEW_STATE.enter]: () => ({ opacity: 1, scale: 1, filter: fx.blur(0), transition: tween(0.3) }),
-  [VIEW_STATE.exit]: () => ({ opacity: 0, scale: fx.scale(0.7), filter: fx.blur(6), transition: tween(0.14) }),
+  [VIEW_STATE.initial]: () => ({ opacity: 0, filter: fx.blur(6) }),
+  [VIEW_STATE.enter]: () => ({ opacity: 1, filter: fx.blur(0), transition: tween(0.26) }),
+  [VIEW_STATE.exit]: () => ({ opacity: 0, filter: fx.blur(6), transition: tween(0.13) }),
 };
 
-/** Sizes the blurred backdrop of the glass surface to a shape. */
-function placeBackdrop(
-  element: HTMLDivElement | null,
-  cx: number,
-  width: number,
-  height: number,
-  radius: number,
-  att: number,
-) {
+// Layout positions are stored in 1/64 px. Quantising first makes an offset and its negation
+// cancel exactly, which keeps the views on whole pixels while the clip box moves.
+const quantise = (value: number) => Math.round(value * 64) / 64;
+
+function place(element: HTMLElement | null, left: number, top: number, width: number, height: number, radii: string) {
   if (!element) return;
-  const bottom = Math.min(radius, width / 2, height / 2);
-  const top = bottom * Math.max(0, att * 2 - 1);
-  element.style.left = `${cx - width / 2}px`;
-  element.style.top = `${PAD_TOP}px`;
-  element.style.width = `${width}px`;
-  element.style.height = `${height}px`;
-  element.style.borderRadius = `${top}px ${top}px ${bottom}px ${bottom}px`;
+  element.style.left = `${left}px`;
+  element.style.top = `${top}px`;
+  element.style.width = `${Math.max(0, width)}px`;
+  element.style.height = `${Math.max(0, height)}px`;
+  element.style.borderRadius = radii;
 }
 
 /** Whether a `#rrggbb` colour is light enough to need dark content on it. */
@@ -133,14 +119,40 @@ export function Island() {
   const rootRef = useRef<HTMLDivElement>(null);
   const fillRef = useRef<SVGPathElement>(null);
   const outlineRef = useRef<SVGPathElement>(null);
-  const clipRef = useRef<HTMLDivElement>(null);
+  const shadowRef = useRef<HTMLDivElement>(null);
+  const boxRef = useRef<HTMLDivElement>(null);
+  const innerRef = useRef<HTMLDivElement>(null);
   const lightRef = useRef<HTMLDivElement>(null);
-  const backdropRef = useRef<HTMLDivElement>(null);
-  const bubbleBackdropRef = useRef<HTMLDivElement>(null);
+  const bubbleRef = useRef<HTMLDivElement>(null);
+  const bubbleShadowRef = useRef<HTMLDivElement>(null);
   const hoverTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const [hovered, setHovered] = useState(false);
 
   useFileDrop();
+
+  // Half a pixel off and every layer is resampled: soft at rest, and it visibly snaps when an
+  // animation ends. Keep the origin on a device pixel whatever the width of the container.
+  useLayoutEffect(() => {
+    const root = rootRef.current;
+    const parent = root?.offsetParent;
+    if (!root || !(parent instanceof HTMLElement)) return;
+    const snap = () => {
+      const rect = parent.getBoundingClientRect();
+      const ratio = window.devicePixelRatio || 1;
+      const originX = rect.left + parent.clientLeft;
+      const originY = rect.top + parent.clientTop;
+      root.style.left = `${Math.round((originX + parent.clientWidth / 2) * ratio) / ratio - originX}px`;
+      root.style.top = `${Math.round(originY * ratio) / ratio - originY}px`;
+    };
+    snap();
+    const observer = new ResizeObserver(snap);
+    observer.observe(parent);
+    window.addEventListener('resize', snap);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('resize', snap);
+    };
+  }, []);
 
   const expanded = mode === 'expanded';
   const floating = settings.attachment === 'floating';
@@ -167,19 +179,24 @@ export function Island() {
   const previous = useRef({ area: target.w * target.h, lift });
   useEffect(() => {
     const area = target.w * target.h;
-    const transition =
+    const edges =
       previous.current.lift !== lift
         ? spring('snappy', { bounce: 0 })
         : spring(area >= previous.current.area ? 'morph' : 'collapse');
+    // Same timing without the overshoot, for everything that moves content.
+    const steady = { ...edges, bounce: 0 };
     previous.current = { area, lift };
-    for (const key of Object.keys(target) as GeoKey[]) animate(geo[key], target[key], transition);
+    for (const key of Object.keys(target) as GeoKey[]) {
+      animate(geo[key], target[key], key === 'w' || key === 'h' ? edges : steady);
+    }
     // The target is fully described by its numbers.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [target.w, target.h, target.r, target.x, target.att, target.bx, target.bs, target.br]);
 
   const { surface } = settings;
-  // The blur behind glass can only be clipped by a border radius, so glass uses circular corners.
+  // The blur behind glass follows the clip box, which has circular corners.
   const cornerSmoothing = surface === 'glass' ? 0 : settings.cornerSmoothing;
+  const shadowInset = surface === 'glass' ? 0 : SHADOW_INSET;
   useLayoutEffect(() => {
     const draw = () => {
       const att = geo.att.get();
@@ -193,8 +210,8 @@ export function Island() {
       const top = Math.max(0, att * 2 - 1);
       // At rest inside the main shape the bubble is left out, so translucent surfaces show no seam.
       const bubbleOut = scale > 0.505;
-      const side = bubbleOut ? BUBBLE_SIZE * scale : 0;
-      const bubbleRadius = geo.br.get() * scale;
+      const side = BUBBLE_SIZE * scale;
+      const bubbleRadius = geo.br.get();
 
       let d = islandPath({
         cx,
@@ -213,30 +230,46 @@ export function Island() {
           top: PAD_TOP,
           width: side,
           height: side,
-          radius: bubbleRadius,
+          radius: bubbleRadius * scale,
           ear: EAR * scale * ear,
-          topRadius: bubbleRadius * top,
+          topRadius: bubbleRadius * scale * top,
           smoothing: cornerSmoothing,
         });
       }
-
       fillRef.current?.setAttribute('d', d);
       outlineRef.current?.setAttribute('d', d);
-      if (clipRef.current) clipRef.current.style.clipPath = `path("${d}")`;
-      if (lightRef.current) {
-        lightRef.current.style.transform = `translate(${cx - w / 2}px, ${PAD_TOP + h - LIGHT_HEIGHT}px)`;
-        lightRef.current.style.width = `${w}px`;
+
+      const left = quantise(cx - w / 2);
+      const bottom = Math.min(r, w / 2, h / 2);
+      const corners = (value: number) => `${value * top}px ${value * top}px ${value}px ${value}px`;
+      place(boxRef.current, left, PAD_TOP, w, h, corners(bottom));
+      if (innerRef.current) innerRef.current.style.left = `${-left}px`;
+      place(
+        shadowRef.current,
+        left + shadowInset,
+        PAD_TOP + shadowInset,
+        w - shadowInset * 2,
+        h - shadowInset * 2,
+        corners(Math.max(0, bottom - shadowInset)),
+      );
+      if (bubbleRef.current) bubbleRef.current.style.borderRadius = corners(bubbleRadius);
+      if (bubbleShadowRef.current) {
+        bubbleShadowRef.current.style.borderRadius = corners(Math.max(0, bubbleRadius - shadowInset));
       }
-      placeBackdrop(backdropRef.current, cx, w, h, r, att);
-      placeBackdrop(bubbleBackdropRef.current, CX + geo.bx.get(), side, side, bubbleRadius, att);
+      if (lightRef.current) {
+        // A transform only, so the light follows the shape without any layout.
+        lightRef.current.style.transform = `translate(${cx - w / 2}px, ${PAD_TOP + h - LIGHT_HEIGHT}px) scaleX(${w / LIGHT_WIDTH})`;
+      }
     };
     draw();
-    const stops = Object.values(geo).map((value) => value.on('change', () => frame.render(draw)));
+    // Immediate: drawn in the frame in which the values changed. Scheduled normally the shape
+    // would trail the content, which follows the same values, by one frame.
+    const stops = Object.values(geo).map((value) => value.on('change', () => frame.render(draw, false, true)));
     return () => {
       for (const stop of stops) stop();
       cancelFrame(draw);
     };
-  }, [geo, cornerSmoothing, surface, settings.edgeLight]);
+  }, [geo, cornerSmoothing, shadowInset, settings.edgeLight]);
 
   // One shot gestures of the whole island.
   const fxScale = useRef(motionValue(1)).current;
@@ -246,7 +279,7 @@ export function Island() {
       onEffect((effect) => {
         if (fx.scale(0) !== 0) return;
         if (effect === 'bump') {
-          animate(fxScale, [1, 1.05, 1], { duration: scaled(0.42), ease: [0.22, 1, 0.36, 1], times: [0, 0.3, 1] });
+          animate(fxScale, [1, 1.04, 1], { duration: scaled(0.42), ease: [0.22, 1, 0.36, 1], times: [0, 0.3, 1] });
         } else {
           animate(fxX, [0, -10, 8, -5, 2, 0], { duration: scaled(0.45), ease: 'easeOut' });
         }
@@ -278,6 +311,7 @@ export function Island() {
   // Sideways pull of a swipe, added to the shake offset.
   const pull = useRef(motionValue(0)).current;
   const canvasX = useTransform(() => fxX.get() + pull.get());
+  const canvasY = useTransform(geo.att, (value) => value * FLOATING_TOP);
   const gestures = useGestures(pull, {
     onSwipe: (direction) => {
       const { id, kind, data } = main.instance;
@@ -324,18 +358,6 @@ export function Island() {
     release();
   };
 
-  // Scales for the running swap, fixed at the moment the main view changes.
-  const swap = useRef<{ key: string; width: number; morph: Morph }>({
-    key: main.key,
-    width,
-    morph: { enter: 1, exit: 1 },
-  });
-  if (swap.current.key !== main.key) {
-    const from = swap.current.width;
-    swap.current = { key: main.key, width, morph: { enter: follow(from / width), exit: follow(width / from) } };
-  }
-  const morph = swap.current.morph;
-
   // The last bubble stays rendered while its shape retreats into the main one.
   const lastBubble = useRef<ResolvedView | null>(bubble);
   if (bubble) lastBubble.current = bubble;
@@ -352,13 +374,14 @@ export function Island() {
   const tint = mode === 'idle' ? 'transparent' : (resolveTint(main) ?? accent);
 
   const rootStyle = {
-    top: floating ? FLOATING_TOP : 0,
     transform: settings.scale === 1 ? undefined : `scale(${settings.scale})`,
     '--island-time-scale': settings.timeScale,
     '--island-accent': accent,
     '--island-tint': tint,
     ...(surface === 'custom' ? { '--island-bg': settings.surfaceColor } : null),
   } as CSSProperties;
+
+  const bubbleMotion = { x: bubbleX, scale: bubbleScale, opacity: bubbleOpacity };
 
   return (
     <div
@@ -383,22 +406,31 @@ export function Island() {
           height: CANVAS_H,
           scale: fxScale,
           x: canvasX,
+          y: canvasY,
           transformOrigin: `50% ${PAD_TOP}px`,
         }}
       >
+        <div ref={shadowRef} className={css.shadow} />
+        {shownBubble && (
+          <motion.div
+            ref={bubbleShadowRef}
+            className={css.shadow}
+            style={{
+              left: CX - BUBBLE_SIZE / 2 + shadowInset,
+              top: PAD_TOP + shadowInset,
+              width: BUBBLE_SIZE - shadowInset * 2,
+              height: BUBBLE_SIZE - shadowInset * 2,
+              transformOrigin: `50% ${-shadowInset}px`,
+              ...bubbleMotion,
+            }}
+          />
+        )}
         <svg className={css.paint} width={CANVAS_W} height={CANVAS_H} aria-hidden>
           <path ref={outlineRef} className={css.outline} />
           <path ref={fillRef} className={css.fill} />
         </svg>
-        {surface === 'glass' && (
-          <>
-            <div ref={backdropRef} className={css.backdrop} />
-            <div ref={bubbleBackdropRef} className={css.backdrop} />
-          </>
-        )}
         <div
-          ref={clipRef}
-          className={css.clip}
+          className={css.hit}
           onPointerEnter={onPointerEnter}
           onPointerLeave={onPointerLeave}
           onPointerDown={(event) => {
@@ -419,32 +451,36 @@ export function Island() {
             else if (!expanded) store.expand();
           }}
         >
-          {settings.edgeLight && <div ref={lightRef} className={css.light} style={{ height: LIGHT_HEIGHT }} />}
-          <AnimatePresence initial={false} custom={morph}>
-            <motion.div
-              key={main.key}
-              className={css.view}
-              style={{ width, height, left: CX - width / 2, top: PAD_TOP, x: viewX }}
-              custom={morph}
-              variants={viewVariants}
-              initial={VIEW_STATE.initial}
-              animate={VIEW_STATE.enter}
-              exit={VIEW_STATE.exit}
-            >
-              <ActivityView view={main} />
-            </motion.div>
-          </AnimatePresence>
+          <div ref={boxRef} className={css.box}>
+            <div ref={innerRef} className={css.inner} style={{ top: -PAD_TOP, width: CANVAS_W, height: CANVAS_H }}>
+              {settings.edgeLight && (
+                <div ref={lightRef} className={css.light} style={{ width: LIGHT_WIDTH, height: LIGHT_HEIGHT }} />
+              )}
+              <AnimatePresence initial={false}>
+                <motion.div
+                  key={main.key}
+                  className={css.view}
+                  style={{ width, height, left: CX - width / 2, top: PAD_TOP, x: viewX }}
+                  variants={viewVariants}
+                  initial={VIEW_STATE.initial}
+                  animate={VIEW_STATE.enter}
+                  exit={VIEW_STATE.exit}
+                >
+                  <ActivityView view={main} />
+                </motion.div>
+              </AnimatePresence>
+            </div>
+          </div>
           {shownBubble && (
             <motion.div
-              className={css.bubble}
+              ref={bubbleRef}
+              className={`${css.box} ${css.bubble}`}
               data-no-gesture
               style={{
                 left: CX - BUBBLE_SIZE / 2,
                 top: PAD_TOP,
-                x: bubbleX,
-                scale: bubbleScale,
-                opacity: bubbleOpacity,
                 pointerEvents: bubble ? 'auto' : 'none',
+                ...bubbleMotion,
               }}
               onClick={(event) => {
                 event.stopPropagation();

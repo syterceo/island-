@@ -94,7 +94,7 @@ function Minimal({ data }: ActivityViewProps<MusicData>) {
 }
 
 function Expanded({ data, update }: ActivityViewProps<MusicData>) {
-  const now = useNow(500, data.playing);
+  const now = useNow(500, data.playing, data.anchorAt - data.positionMs);
   const track = trackOf(data);
   const at = position(data, now);
 
@@ -158,7 +158,7 @@ function Expanded({ data, update }: ActivityViewProps<MusicData>) {
 }
 
 function Controller({ data, update }: ActivityApi<MusicData>) {
-  const now = useNow(500, data.playing);
+  const now = useNow(500, data.playing, data.anchorAt - data.positionMs);
   const ended = position(data, now) >= trackOf(data).durationMs;
   useEffect(() => {
     if (ended) skip(update, 1);

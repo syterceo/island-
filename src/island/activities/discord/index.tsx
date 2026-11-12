@@ -46,7 +46,7 @@ function leave(dismiss: () => void, label: string) {
 }
 
 function Compact({ data }: ActivityViewProps<DiscordData>) {
-  const now = useNow(500, data.state === 'voice');
+  const now = useNow(1000, data.state === 'voice', data.joinedAt);
   if (data.state === 'incoming') {
     return (
       <div className={ui.compact} style={{ gap: 9, justifyContent: 'flex-start', padding: '0 13px 0 7px' }}>
@@ -107,7 +107,7 @@ function Incoming({ data, update, dismiss, collapse }: ActivityViewProps<Discord
 }
 
 function Voice({ data, update, dismiss }: ActivityViewProps<DiscordData>) {
-  const now = useNow(500);
+  const now = useNow(1000, true, data.joinedAt);
   return (
     <div className={ui.column} style={{ padding: '14px 16px 14px', gap: 0, justifyContent: 'space-between' }}>
       <Rise i={0} className={ui.row} style={{ gap: 10 }}>

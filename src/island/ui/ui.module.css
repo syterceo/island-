@@ -939,3 +939,12 @@
     opacity: 0.15;
   }
 }
+
+/*
+ * Anything that moves gets its own layer. Without one the browser redraws the text at every
+ * fractional position on the way, and the letters visibly tremble.
+ */
+.rise,
+.swapItem {
+  will-change: transform, opacity;
+}

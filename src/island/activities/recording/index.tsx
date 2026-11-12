@@ -14,7 +14,7 @@ interface RecordingData {
 const RED = 'var(--island-negative)';
 
 function Compact({ data }: ActivityViewProps<RecordingData>) {
-  const now = useNow(500);
+  const now = useNow(1000, true, data.startedAt);
   return (
     <div className={ui.compact} style={{ padding: '0 13px 0 14px' }}>
       <LiveDot />
@@ -36,7 +36,7 @@ function Minimal() {
 }
 
 function Expanded({ data, dismiss }: ActivityViewProps<RecordingData>) {
-  const now = useNow(500);
+  const now = useNow(1000, true, data.startedAt);
   const stop = () => {
     dismiss();
     useIslandStore.getState().show('status', { tone: 'success', label: 'Recording saved' });

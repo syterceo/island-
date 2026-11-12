@@ -1,7 +1,8 @@
 .root {
   position: absolute;
+  /* The shell sets left and top itself, snapped to device pixels. */
   top: 0;
-  left: 50%;
+  left: 0;
   z-index: 10;
   width: 0;
   height: 0;
@@ -10,6 +11,18 @@
   user-select: none;
   transform-origin: 0 0;
   transition: --island-tint 0.45s ease;
+  --island-shadow: 0 0 0 transparent;
+  --island-contact: 0 0 0 transparent;
+  --island-halo: 0 0 0 transparent;
+}
+
+.root[data-shadow='true'] {
+  --island-shadow: 0 12px 28px rgb(0 0 0 / 0.36);
+  --island-contact: 0 2px 6px rgb(0 0 0 / 0.22);
+}
+
+.root[data-glow='true'] {
+  --island-halo: 0 0 24px 2px color-mix(in srgb, var(--island-tint) 50%, transparent);
 }
 
 .root[data-surface='mica'] {
@@ -42,28 +55,24 @@
   --island-outline: rgb(0 0 0 / 0.1);
 }
 
+/* One layer for the whole island: press, bump and shake move a bitmap instead of redrawing text. */
 .canvas {
   position: absolute;
   pointer-events: none;
+  will-change: transform;
+}
+
+/* A plain box shadow under the silhouette. Much cheaper per frame than a filter on the path. */
+.shadow {
+  position: absolute;
+  box-shadow: var(--island-shadow), var(--island-contact), var(--island-halo);
+  will-change: transform;
 }
 
 .paint {
   position: absolute;
   inset: 0;
   overflow: visible;
-}
-
-.root[data-shadow='true'] .paint {
-  filter: drop-shadow(0 12px 26px rgb(0 0 0 / 0.34)) drop-shadow(0 2px 5px rgb(0 0 0 / 0.2));
-}
-
-.root[data-glow='true'] .paint {
-  filter: drop-shadow(0 0 20px color-mix(in srgb, var(--island-tint) 46%, transparent));
-}
-
-.root[data-shadow='true'][data-glow='true'] .paint {
-  filter: drop-shadow(0 12px 26px rgb(0 0 0 / 0.34))
-    drop-shadow(0 0 20px color-mix(in srgb, var(--island-tint) 46%, transparent));
 }
 
 .fill {
@@ -84,9 +93,30 @@
   opacity: 1;
 }
 
-.backdrop {
+.hit {
   position: absolute;
+  inset: 0;
+}
+
+/* Clips content to the shape. Rounded boxes are clipped by the compositor, with no mask. */
+.box {
+  position: absolute;
+  overflow: hidden;
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.root[data-mode='expanded'] .box {
+  cursor: default;
+}
+
+.root[data-surface='glass'] .box {
   backdrop-filter: blur(22px) saturate(1.7);
+}
+
+/* Cancels the offset of the clip box, so views keep canvas coordinates. */
+.inner {
+  position: absolute;
 }
 
 /* The edge light: a glow rising from the bottom edge in the colour of the running activity. */
@@ -95,6 +125,8 @@
   top: 0;
   left: 0;
   pointer-events: none;
+  transform-origin: 0 0;
+  will-change: transform;
   background: radial-gradient(
     58% 100% at 50% 100%,
     color-mix(in srgb, var(--island-tint) 30%, transparent),
@@ -113,33 +145,21 @@
   background: linear-gradient(90deg, transparent, var(--island-tint), transparent);
 }
 
-.clip {
-  position: absolute;
-  inset: 0;
-  pointer-events: auto;
-  cursor: pointer;
-}
-
-.root[data-mode='expanded'] .clip {
-  cursor: default;
-}
-
-/* A permanent layer keeps text antialiasing identical during and after a swap. */
+/* Permanent layers: text is rasterised once and then only moved or faded. */
 .view {
   position: absolute;
-  transform-origin: 50% 0;
-  will-change: opacity;
+  will-change: transform, opacity;
 }
 
 .bubble {
-  position: absolute;
   width: 36px;
   height: 36px;
-  cursor: pointer;
   transform-origin: 50% 0;
+  will-change: transform, opacity;
 }
 
 .bubbleView {
   position: absolute;
   inset: 0;
+  will-change: opacity;
 }

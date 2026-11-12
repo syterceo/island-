@@ -21,7 +21,7 @@ const hhmm = (time: number) =>
   new Date(time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
 
 function Countdown({ data }: { data: MeetingData }) {
-  const now = useNow(250);
+  const now = useNow(1000, true, data.startsAt);
   const left = data.startsAt - now;
   return (
     <Swap id={left > 0 ? 'soon' : 'now'} className={ui.label} align="end" style={{ color: 'var(--island-tint)' }}>
@@ -96,7 +96,7 @@ function Expanded({ data, dismiss }: ActivityViewProps<MeetingData>) {
 }
 
 function Controller({ data }: ActivityApi<MeetingData>) {
-  const now = useNow(250);
+  const now = useNow(1000, true, data.startsAt);
   const started = now >= data.startsAt;
   useEffect(() => {
     if (started) emitEffect('bump');
