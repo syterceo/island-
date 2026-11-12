@@ -15,4 +15,5 @@ export { useNow } from './hooks/useNow';
 export { emitEffect, onEffect } from './effects';
 export { installDebugApi } from './debug';
 export { Island } from './shell/Island';
+export { APPS, appOf, type AppId, type AppInfo } from './apps';
 export * from './metrics';

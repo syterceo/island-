@@ -9,6 +9,12 @@
   font-family: var(--font-sans);
   user-select: none;
   transform-origin: 0 0;
+  transition: --island-tint 0.45s ease;
+}
+
+.root[data-surface='mica'] {
+  --island-bg: #17171a;
+  --island-outline: rgb(255 255 255 / 0.13);
 }
 
 .root[data-surface='graphite'] {
@@ -49,12 +55,12 @@
 }
 
 .root[data-glow='true'] .paint {
-  filter: drop-shadow(0 0 20px color-mix(in srgb, var(--island-accent) 42%, transparent));
+  filter: drop-shadow(0 0 20px color-mix(in srgb, var(--island-tint) 46%, transparent));
 }
 
 .root[data-shadow='true'][data-glow='true'] .paint {
   filter: drop-shadow(0 12px 26px rgb(0 0 0 / 0.34))
-    drop-shadow(0 0 20px color-mix(in srgb, var(--island-accent) 42%, transparent));
+    drop-shadow(0 0 20px color-mix(in srgb, var(--island-tint) 46%, transparent));
 }
 
 .fill {
@@ -80,6 +86,30 @@
   backdrop-filter: blur(22px) saturate(1.7);
 }
 
+/* The edge light: a glow rising from the bottom edge in the colour of the running activity. */
+.light {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    58% 100% at 50% 100%,
+    color-mix(in srgb, var(--island-tint) 30%, transparent),
+    transparent
+  );
+}
+
+.light::after {
+  content: '';
+  position: absolute;
+  right: 16%;
+  bottom: 0;
+  left: 16%;
+  height: 1.5px;
+  border-radius: 1px;
+  background: linear-gradient(90deg, transparent, var(--island-tint), transparent);
+}
+
 .clip {
   position: absolute;
   inset: 0;
@@ -103,6 +133,7 @@
   width: 36px;
   height: 36px;
   cursor: pointer;
+  transform-origin: 50% 0;
 }
 
 .bubbleView {

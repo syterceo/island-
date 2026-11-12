@@ -112,6 +112,7 @@ export default defineLiveActivity<NotesData>({
   title: 'Notes',
   description: 'Pinned notes. Type in the expanded view; new notes slide into the list.',
   icon: NotePencilIcon,
+  tint: '#ffd60a',
   defaultData: () => ({
     notes: [
       { id: 2, text: 'Ship the island build on Friday' },

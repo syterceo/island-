@@ -2,7 +2,7 @@ import { SunIcon } from '@phosphor-icons/react';
 import { motion } from 'motion/react';
 import { defineTransient } from '../../define';
 import { COMPACT_HEIGHT } from '../../metrics';
-import { spring } from '../../motion/springs';
+import { tween } from '../../motion/springs';
 import type { ActivityViewProps } from '../../types';
 import { LevelView } from '../../ui/kit';
 
@@ -21,7 +21,7 @@ function View({ data }: ActivityViewProps<BrightnessData>) {
           style={{ display: 'grid', flex: 'none' }}
           initial={false}
           animate={{ rotate: data.level * 120, scale: 0.8 + data.level * 0.25 }}
-          transition={spring('snappy')}
+          transition={tween(0.3)}
         >
           <SunIcon size={18} weight="fill" color="var(--island-warning)" />
         </motion.span>

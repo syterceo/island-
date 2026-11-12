@@ -5,7 +5,6 @@ import {
   DEFAULT_SETTINGS,
   type DemoControl,
   emitEffect,
-  Island,
   type IslandSettings,
   listDefinitions,
   useIslandStore,
@@ -14,17 +13,20 @@ import {
   ArrowCounterClockwiseIcon,
   type Icon,
   PillIcon,
-  PlayIcon,
+  PlugsConnectedIcon,
   SlidersHorizontalIcon,
   SquaresFourIcon,
   WaveSineIcon,
 } from '@phosphor-icons/react';
 import { AnimatePresence, motion } from 'motion/react';
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
+import { AppsPage } from './AppsPage';
 import { Field, Section, Segmented, Slider, Swatches, Toggle } from './controls';
+import { LOOKS } from './looks';
 import css from './playground.module.css';
+import { Stage, type StageBg } from './Stage';
 
-const STORAGE_KEY = 'island.settings.v1';
+const STORAGE_KEY = 'island.settings.v2';
 
 try {
   const saved = localStorage.getItem(STORAGE_KEY);
@@ -43,145 +45,15 @@ useIslandStore.subscribe((state, previous) => {
 
 const island = () => useIslandStore.getState();
 
-type PageId = 'activities' | 'look' | 'motion' | 'behavior';
-type StageBg = 'dark' | 'wallpaper' | 'light';
+type PageId = 'apps' | 'activities' | 'look' | 'motion' | 'behavior';
 
 const PAGES: { id: PageId; label: string; icon: Icon }[] = [
+  { id: 'apps', label: 'Apps', icon: PlugsConnectedIcon },
   { id: 'activities', label: 'Activities', icon: SquaresFourIcon },
   { id: 'look', label: 'Island', icon: PillIcon },
   { id: 'motion', label: 'Motion', icon: WaveSineIcon },
   { id: 'behavior', label: 'Behavior', icon: SlidersHorizontalIcon },
 ];
-
-const SCENES: { id: string; label: string; run: () => void }[] = [
-  { id: 'idle', label: 'Idle', run: () => island().reset() },
-  { id: 'timer', label: 'Timer', run: () => island().start('timer') },
-  { id: 'music', label: 'Music', run: () => island().start('music') },
-  {
-    id: 'split',
-    label: 'Split',
-    run: () => {
-      island().start('timer');
-      island().start('music');
-    },
-  },
-  {
-    id: 'expanded',
-    label: 'Expanded',
-    run: () => {
-      island().start('music');
-      island().expand('music');
-    },
-  },
-  { id: 'call', label: 'Call', run: () => island().start('call') },
-  { id: 'voice', label: 'Dictation', run: () => island().start('voice') },
-  { id: 'hub', label: 'Hub', run: () => island().expand() },
-  { id: 'alert', label: 'Alert', run: () => island().show('notification') },
-];
-
-// Milliseconds after the previous step, then the step.
-const TOUR: [number, () => void][] = [
-  [0, () => island().reset()],
-  [700, () => island().show('clipboard')],
-  [2300, () => island().start('timer')],
-  [1500, () => island().start('music')],
-  [1600, () => island().expand('music')],
-  [2400, () => island().collapse()],
-  [1100, () => island().show('volume', { level: 0.35 })],
-  [450, () => island().show('volume', { level: 0.6 })],
-  [450, () => island().show('volume', { level: 0.85 })],
-  [2200, () => island().start('call')],
-  [2400, () => island().update('call', { state: 'active', answeredAt: Date.now() })],
-  [200, () => island().collapse()],
-  [2200, () => island().end('call')],
-  [800, () => island().show('notification')],
-  [4200, () => island().start('voice')],
-  [600, () => island().expand('voice')],
-  [8500, () => island().reset()],
-];
-
-function useTour() {
-  const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
-  const [running, setRunning] = useState(false);
-  const stop = () => {
-    timers.current.forEach(clearTimeout);
-    timers.current = [];
-    setRunning(false);
-  };
-  const play = () => {
-    stop();
-    setRunning(true);
-    let at = 0;
-    const scale = island().settings.timeScale;
-    TOUR.forEach(([wait, step], index) => {
-      at += wait * Math.max(1, scale);
-      timers.current.push(
-        setTimeout(() => {
-          step();
-          if (index === TOUR.length - 1) setRunning(false);
-        }, at),
-      );
-    });
-  };
-  useEffect(() => stop, []);
-  return { running, play, stop };
-}
-
-function Stage({ bg, onBg }: { bg: StageBg; onBg: (bg: StageBg) => void }) {
-  const [scene, setScene] = useState('idle');
-  const tour = useTour();
-  return (
-    <div className={css.stage} data-bg={bg} data-island-stage>
-      <Island />
-      <div className={css.sceneBar}>
-        {SCENES.map((item) => (
-          <button
-            key={item.id}
-            type="button"
-            data-active={scene === item.id && !tour.running}
-            onClick={() => {
-              tour.stop();
-              island().reset();
-              item.run();
-              setScene(item.id);
-            }}
-          >
-            {scene === item.id && !tour.running && (
-              <motion.span
-                layoutId="scene"
-                className={css.sceneThumb}
-                transition={{ type: 'spring', visualDuration: 0.28, bounce: 0.18 }}
-              />
-            )}
-            <span>{item.label}</span>
-          </button>
-        ))}
-        <i />
-        <button type="button" data-active={tour.running} onClick={tour.running ? tour.stop : tour.play}>
-          <span className={css.tourLabel}>
-            <PlayIcon size={11} weight="fill" /> {tour.running ? 'Stop' : 'Play tour'}
-          </span>
-        </button>
-      </div>
-      <div className={css.stageSide}>
-        <span>Click the island. Drag a file onto the window.</span>
-        <div className={css.bgSwitch}>
-          {(['dark', 'wallpaper', 'light'] as const).map((value) => (
-            <button
-              key={value}
-              type="button"
-              title={`${value} backdrop`}
-              aria-label={`${value} backdrop`}
-              data-bg={value}
-              data-active={bg === value}
-              onClick={() => onBg(value)}
-            />
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
 
 function apiFor(instance: ActivityInstance): ActivityApi {
   return {
@@ -352,6 +224,7 @@ interface Settings {
 }
 
 const SURFACES = [
+  { label: 'Mica', value: 'mica', color: '#17171a' },
   { label: 'Black', value: 'black', color: '#000' },
   { label: 'Graphite', value: 'graphite', color: '#2c2c31' },
   { label: 'Glass', value: 'glass', color: 'linear-gradient(135deg, rgb(255 255 255 / 0.5), rgb(255 255 255 / 0.12))' },
@@ -367,47 +240,6 @@ const ACCENTS = [
   { label: 'Amber', value: '#ffc061', color: '#ffc061' },
   { label: 'Coral', value: '#ff7a6b', color: '#ff7a6b' },
   { label: 'Sand', value: '#e2cfa9', color: '#e2cfa9' },
-];
-
-interface Look {
-  name: string;
-  stage: StageBg;
-  patch: Partial<IslandSettings>;
-  /** Pill and wave colours of the miniature. */
-  preview: [string, string];
-}
-
-const LOOKS: Look[] = [
-  {
-    name: 'Classic',
-    stage: 'dark',
-    patch: { surface: 'black', accent: 'fg', waveStyle: 'bars', glow: false, outline: true, shadow: true },
-    preview: ['#000', '#fff'],
-  },
-  {
-    name: 'Drop',
-    stage: 'dark',
-    patch: { surface: 'black', accent: '#6ea8ff', waveStyle: 'bars', glow: true, outline: true, shadow: true },
-    preview: ['#000', '#6ea8ff'],
-  },
-  {
-    name: 'Contrast',
-    stage: 'dark',
-    patch: { surface: 'light', accent: 'fg', waveStyle: 'line', glow: false, outline: false, shadow: true },
-    preview: ['#f5f5f7', '#0b0b0c'],
-  },
-  {
-    name: 'Glass',
-    stage: 'wallpaper',
-    patch: { surface: 'glass', accent: '#b79cff', waveStyle: 'bars', glow: false, outline: true, shadow: true },
-    preview: ['rgb(255 255 255 / 0.16)', '#b79cff'],
-  },
-  {
-    name: 'Minimal',
-    stage: 'dark',
-    patch: { surface: 'graphite', accent: 'fg', waveStyle: 'dots', glow: false, outline: false, shadow: false },
-    preview: ['#2c2c31', '#fff'],
-  },
 ];
 
 const percent = (value: number) => `${Math.round(value * 100)}%`;
@@ -430,7 +262,10 @@ function LookPage({ settings, set, onStage }: Settings & { onStage: (bg: StageBg
                 onStage(look.stage);
               }}
             >
-              <span className={css.lookPill} style={{ background: look.preview[0], color: look.preview[1] }}>
+              <span
+                className={css.lookPill}
+                style={{ background: look.preview[0], color: look.preview[1], borderRadius: look.preview[2] }}
+              >
                 <b />
                 <i />
                 <i />
@@ -472,7 +307,10 @@ function LookPage({ settings, set, onStage }: Settings & { onStage: (bg: StageBg
             onChange={(waveStyle) => set({ waveStyle })}
           />
         </Field>
-        <Field label="Glow" hint="Accent halo while something is on the island">
+        <Field label="Edge light" hint="A line of light along the bottom edge in the colour of the running app">
+          <Toggle value={settings.edgeLight} onChange={(edgeLight) => set({ edgeLight })} />
+        </Field>
+        <Field label="Glow" hint="A halo around the island in the same colour">
           <Toggle value={settings.glow} onChange={(glow) => set({ glow })} />
         </Field>
         <Field label="Outline" hint="A hairline that separates the island from dark backgrounds">
@@ -483,11 +321,14 @@ function LookPage({ settings, set, onStage }: Settings & { onStage: (bg: StageBg
         </Field>
       </Section>
       <Section title="Shape">
-        <Field label="Attachment" hint="Notch grows out of the screen edge, floating is a free pill">
+        <Field label="Roundness" hint="From a tight tab to a full capsule" value={percent(settings.roundness)} stacked>
+          <Slider value={settings.roundness} min={0} max={1} step={0.05} onChange={(roundness) => set({ roundness })} />
+        </Field>
+        <Field label="Attachment" hint="Docked grows out of the screen edge, floating hangs below it">
           <Segmented
             value={settings.attachment}
             options={[
-              { label: 'Notch', value: 'notch' },
+              { label: 'Docked', value: 'notch' },
               { label: 'Floating', value: 'floating' },
             ]}
             onChange={(attachment) => set({ attachment })}
@@ -614,8 +455,8 @@ function BehaviorPage({ settings, set }: Settings) {
 }
 
 export function Playground() {
-  const [page, setPage] = useState<PageId>('activities');
-  const [bg, setBg] = useState<StageBg>('dark');
+  const [page, setPage] = useState<PageId>('apps');
+  const [bg, setBg] = useState<StageBg>('desktop');
   const settings = useIslandStore((state) => state.settings);
   const set = useIslandStore((state) => state.setSettings);
 
@@ -645,6 +486,7 @@ export function Playground() {
         <Stage bg={bg} onBg={setBg} />
         <div className={css.page}>
           <div key={page} className={css.pageInner}>
+            {page === 'apps' && <AppsPage />}
             {page === 'activities' && <ActivitiesPage />}
             {page === 'look' && <LookPage settings={settings} set={set} onStage={setBg} />}
             {page === 'motion' && <MotionPage settings={settings} set={set} />}

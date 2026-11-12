@@ -81,7 +81,7 @@
 .stage {
   position: relative;
   flex: none;
-  height: 344px;
+  height: 320px;
   overflow: hidden;
   border: 1px solid var(--ui-border);
   border-radius: 16px;
@@ -100,10 +100,74 @@
     radial-gradient(70% 90% at 55% 100%, #feff9c 0%, transparent 60%), linear-gradient(135deg, #6a5cff, #b06ab3);
 }
 
-.sceneBar {
+.stage[data-bg='desktop'] {
+  background:
+    radial-gradient(46% 70% at 50% 108%, #7fd4ff 0%, #2d7ff0 34%, transparent 72%),
+    radial-gradient(60% 60% at 18% 92%, #1a4fd0 0%, transparent 70%),
+    radial-gradient(60% 60% at 84% 90%, #2440b8 0%, transparent 70%), linear-gradient(180deg, #06102e 0%, #0b1f5c 100%);
+}
+
+.taskbar {
   position: absolute;
-  left: 12px;
-  bottom: 12px;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 40px;
+  border-top: 1px solid rgb(255 255 255 / 0.08);
+  background: rgb(28 30 38 / 0.72);
+  backdrop-filter: blur(24px) saturate(1.5);
+}
+
+.taskbarApps {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.taskbarClock {
+  position: absolute;
+  right: 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  font-size: 10.5px;
+  font-weight: 600;
+  line-height: 1.25;
+  color: rgb(255 255 255 / 0.86);
+}
+
+.toolbar {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 14px;
+  margin-top: 10px;
+}
+
+.toolbarHint {
+  flex: 1;
+  overflow: hidden;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ui-fg-3);
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.note {
+  max-width: 640px;
+  margin: 16px 0 0;
+  font-size: 12.5px;
+  font-weight: 500;
+  line-height: 1.5;
+  color: var(--ui-fg-3);
+}
+
+.sceneBar {
   display: flex;
   align-items: center;
   gap: 2px;
@@ -154,23 +218,6 @@
   gap: 6px;
 }
 
-.stageSide {
-  position: absolute;
-  right: 14px;
-  bottom: 14px;
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--ui-fg-3);
-}
-
-.stage[data-bg='light'] .stageSide,
-.stage[data-bg='wallpaper'] .stageSide {
-  color: rgb(0 0 0 / 0.55);
-}
-
 .bgSwitch {
   display: flex;
   gap: 6px;
@@ -187,6 +234,10 @@
   border-radius: 50%;
   box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.18);
   transition: box-shadow 0.2s ease;
+}
+
+.bgSwitch button[data-bg='desktop'] {
+  background: linear-gradient(180deg, #0b1f5c, #2d7ff0);
 }
 
 .bgSwitch button[data-bg='dark'] {
