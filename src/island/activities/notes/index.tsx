@@ -3,7 +3,6 @@ import { AnimatePresence, motion } from 'motion/react';
 import { useState } from 'react';
 import { defineLiveActivity } from '../../define';
 import { T, translate, useLanguage } from '../../i18n';
-import { emitEffect } from '../../effects';
 import { COMPACT_HEIGHT } from '../../metrics';
 import { spring, tween } from '../../motion/springs';
 import type { ActivityApi, ActivityViewProps } from '../../types';
@@ -24,7 +23,6 @@ function addNote(update: ActivityApi<NotesData>['update'], text: string) {
   const trimmed = text.trim();
   if (!trimmed) return;
   update((data) => ({ notes: [{ id: Date.now(), text: trimmed }, ...data.notes] }));
-  emitEffect('bump');
 }
 
 function Compact({ data }: ActivityViewProps<NotesData>) {
