@@ -737,3 +737,205 @@
   display: inline-block;
   white-space: pre;
 }
+
+.textButton {
+  flex: none;
+  height: 34px;
+  padding: 0 14px;
+  border-radius: 10px;
+  background: var(--island-fill-2);
+  color: var(--island-fg);
+  font-size: var(--island-text-md);
+  font-weight: 700;
+  white-space: nowrap;
+  transition: background-color 0.2s ease;
+}
+
+.textButton:hover {
+  background: var(--island-fill-3);
+}
+
+.textButton[data-tone='active'] {
+  background: var(--island-fg);
+  color: var(--island-bg);
+}
+
+.textButton[data-tone='positive'] {
+  background: var(--island-positive);
+  color: #06200d;
+}
+
+/* Hub quick settings. */
+.hubToggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  height: 38px;
+  border-radius: 12px;
+  background: var(--island-fill-1);
+  color: var(--island-fg-2);
+  font-size: var(--island-text-xs);
+  font-weight: 700;
+  white-space: nowrap;
+  transition:
+    background-color 0.25s ease,
+    color 0.25s ease;
+}
+
+.hubToggle[data-on='true'] {
+  background: var(--island-fg);
+  color: var(--island-bg);
+}
+
+/* Clipboard history rows. */
+.clipRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  margin-bottom: 5px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: var(--island-fill-1);
+  color: var(--island-fg);
+  font-size: var(--island-text-md);
+  font-weight: 600;
+  text-align: left;
+  transition: background-color 0.2s ease;
+}
+
+.clipRow:hover {
+  background: var(--island-fill-2);
+}
+
+.clipRow > span:first-child {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Round counters: focus rounds, notification pages. */
+.pips {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 5px;
+}
+
+.pips > i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--island-fill-3);
+  transition: background-color 0.3s ease;
+}
+
+.pips > i[data-on='true'] {
+  background: var(--island-tint);
+}
+
+/* Day tile of a calendar event. */
+.dayTile {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 56px;
+  border-radius: 14px;
+  background: var(--island-fill-1);
+}
+
+.dayTile > b {
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Hourly forecast. */
+.hours {
+  display: flex;
+  flex: 1;
+  align-items: flex-end;
+  gap: 8px;
+  height: 100%;
+}
+
+.hours > span {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 5px;
+  height: 100%;
+}
+
+.hours i {
+  display: block;
+  width: 100%;
+  max-width: 18px;
+  border-radius: 4px;
+  background: var(--island-tint);
+  transform-origin: 50% 100%;
+}
+
+.crest {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+/* Stacked banners behind the front notification. */
+.stackEdge {
+  position: absolute;
+  right: 0;
+  left: 0;
+  height: 9px;
+  border-top: 1px solid var(--island-hairline);
+  background: var(--island-fill-1);
+}
+
+.answer {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  font-size: var(--island-text-md);
+  font-weight: 600;
+  line-height: 1.45;
+}
+
+.answer span {
+  display: inline-block;
+  white-space: pre;
+}
+
+.caret {
+  display: inline-block;
+  width: 7px;
+  height: 14px;
+  margin-left: 1px;
+  border-radius: 2px;
+  background: var(--island-tint);
+  vertical-align: -2px;
+  animation: blink calc(0.9s * var(--island-time-scale)) steps(2, jump-none) infinite;
+}
+
+@keyframes blink {
+  to {
+    opacity: 0.15;
+  }
+}

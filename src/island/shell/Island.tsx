@@ -10,6 +10,8 @@ import {
 } from 'motion/react';
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
 import { ActivityView, IslandControllers } from '../ActivityView';
+import { nudgeVolume } from '../activities/volume/actions';
+import { IDLE_ID } from '../definitions';
 import { onEffect } from '../effects';
 import { useFileDrop } from '../hooks/useFileDrop';
 import { usePresentation } from '../hooks/usePresentation';
@@ -20,6 +22,7 @@ import type { ResolvedView } from '../presentation';
 import { useIslandStore } from '../store';
 import css from './Island.module.css';
 import { islandPath } from './shape';
+import { useGestures } from './useGestures';
 
 /*
  * Morph engine.
@@ -109,6 +112,14 @@ function placeBackdrop(
   element.style.width = `${width}px`;
   element.style.height = `${height}px`;
   element.style.borderRadius = `${top}px ${top}px ${bottom}px ${bottom}px`;
+}
+
+/** Whether a `#rrggbb` colour is light enough to need dark content on it. */
+function isLight(hex: string): boolean {
+  const value = Number.parseInt(hex.slice(1), 16);
+  if (Number.isNaN(value)) return false;
+  const [r, g, b] = [value >> 16, (value >> 8) & 255, value & 255];
+  return 0.299 * r + 0.587 * g + 0.114 * b > 150;
 }
 
 function resolveTint(view: ResolvedView): string | null {
@@ -264,6 +275,35 @@ export function Island() {
 
   const release = () => animate(fxScale, 1, tween(0.22));
 
+  // Sideways pull of a swipe, added to the shake offset.
+  const pull = useRef(motionValue(0)).current;
+  const canvasX = useTransform(() => fxX.get() + pull.get());
+  const gestures = useGestures(pull, {
+    onSwipe: (direction) => {
+      const { id, kind, data } = main.instance;
+      const store = useIslandStore.getState();
+      main.definition.onSwipe?.(
+        {
+          id,
+          kind,
+          data,
+          update: (patch) => store.update(id, patch),
+          dismiss: () => store.end(id),
+          expand: () => store.expand(id),
+          collapse: () => store.collapse(),
+        },
+        direction,
+      );
+    },
+    // The hub stays reachable while activities occupy the island.
+    onHold: () => {
+      if (!expanded) useIslandStore.getState().expand(IDLE_ID);
+    },
+    onWheel: (step) => {
+      if (!expanded) nudgeVolume(step * 0.05);
+    },
+  });
+
   const onPointerEnter = () => {
     setHovered(true);
     clearTimeout(hoverTimer.current);
@@ -308,6 +348,7 @@ export function Island() {
   const bubbleScale = useTransform(geo.bs, (value) => value);
 
   const accent = settings.accent === 'fg' ? 'var(--island-fg)' : settings.accent;
+  const ink = surface === 'light' || (surface === 'custom' && isLight(settings.surfaceColor)) ? 'dark' : 'light';
   const tint = mode === 'idle' ? 'transparent' : (resolveTint(main) ?? accent);
 
   const rootStyle = {
@@ -316,6 +357,7 @@ export function Island() {
     '--island-time-scale': settings.timeScale,
     '--island-accent': accent,
     '--island-tint': tint,
+    ...(surface === 'custom' ? { '--island-bg': settings.surfaceColor } : null),
   } as CSSProperties;
 
   return (
@@ -324,6 +366,7 @@ export function Island() {
       data-island-root
       data-mode={mode}
       data-surface={surface}
+      data-ink={ink}
       data-shadow={settings.shadow}
       data-outline={settings.outline}
       data-glow={settings.glow}
@@ -339,7 +382,7 @@ export function Island() {
           width: CANVAS_W,
           height: CANVAS_H,
           scale: fxScale,
-          x: fxX,
+          x: canvasX,
           transformOrigin: `50% ${PAD_TOP}px`,
         }}
       >
@@ -358,11 +401,19 @@ export function Island() {
           className={css.clip}
           onPointerEnter={onPointerEnter}
           onPointerLeave={onPointerLeave}
-          onPointerDown={() => {
+          onPointerDown={(event) => {
             if (!expanded) animate(fxScale, fx.scale(0.975), tween(0.12));
+            gestures.onPointerDown(event);
           }}
-          onPointerUp={release}
+          onPointerMove={gestures.onPointerMove}
+          onPointerUp={() => {
+            release();
+            gestures.onPointerUp();
+          }}
+          onPointerCancel={gestures.onPointerCancel}
+          onWheel={gestures.onWheel}
           onClick={() => {
+            if (gestures.consumeClick()) return;
             const store = useIslandStore.getState();
             if (mode === 'transient') store.dismissTransient();
             else if (!expanded) store.expand();
@@ -386,6 +437,7 @@ export function Island() {
           {shownBubble && (
             <motion.div
               className={css.bubble}
+              data-no-gesture
               style={{
                 left: CX - BUBBLE_SIZE / 2,
                 top: PAD_TOP,

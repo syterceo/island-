@@ -1,5 +1,6 @@
 import { CopyIcon } from '@phosphor-icons/react';
 import { defineTransient } from '../../define';
+import { T, translate } from '../../i18n';
 import { COMPACT_HEIGHT } from '../../metrics';
 import type { ActivityViewProps } from '../../types';
 import { DrawnMark, ui } from '../../ui/kit';
@@ -12,7 +13,9 @@ function View({ data }: ActivityViewProps<ClipboardData>) {
   return (
     <div className={ui.compact} style={{ justifyContent: 'center' }}>
       <DrawnMark />
-      <span className={ui.label}>{data.label}</span>
+      <span className={ui.label}>
+        <T>{data.label}</T>
+      </span>
     </div>
   );
 }
@@ -24,7 +27,7 @@ export default defineTransient<ClipboardData>({
   icon: CopyIcon,
   defaultData: { label: 'Copied' },
   view: {
-    size: (data) => ({ width: Math.min(300, 62 + data.label.length * 7.6), height: COMPACT_HEIGHT }),
+    size: (data) => ({ width: Math.min(300, 62 + translate(data.label).length * 7.6), height: COMPACT_HEIGHT }),
     Component: View,
   },
   duration: 1800,
