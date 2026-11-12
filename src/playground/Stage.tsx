@@ -1,12 +1,22 @@
-import { APPS, Island, useIslandStore } from '@/island';
+import { APPS, Island, T, useIslandStore } from '@/island';
 import { PlayIcon, WindowsLogoIcon } from '@phosphor-icons/react';
 import { motion } from 'motion/react';
 import { useEffect, useRef, useState } from 'react';
 import css from './playground.module.css';
 
-export type StageBg = 'desktop' | 'dark' | 'wallpaper' | 'light';
+export type StageBg = 'desktop' | 'dark' | 'wallpaper' | 'light' | 'custom';
 
-const BACKDROPS: StageBg[] = ['desktop', 'dark', 'wallpaper', 'light'];
+export interface StageState {
+  bg: StageBg;
+  /** Colour of the `custom` backdrop. */
+  color: string;
+  /** Image of the `custom` backdrop as a data URL. It wins over the colour. */
+  image: string | null;
+}
+
+export const DEFAULT_STAGE: StageState = { bg: 'desktop', color: '#20324f', image: null };
+
+const BACKDROPS: StageBg[] = ['desktop', 'dark', 'wallpaper', 'light', 'custom'];
 
 const island = () => useIslandStore.getState();
 
@@ -113,14 +123,23 @@ function Taskbar() {
   );
 }
 
-export function Stage({ bg, onBg }: { bg: StageBg; onBg: (bg: StageBg) => void }) {
+export function Stage({ stage, onStage }: { stage: StageState; onStage: (stage: StageState) => void }) {
+  const { bg } = stage;
+  const night = useIslandStore((state) => Boolean(state.idle.data.night));
+  const custom =
+    bg !== 'custom'
+      ? undefined
+      : stage.image
+        ? { background: `center / cover no-repeat url("${stage.image}")` }
+        : { background: stage.color };
   const [scene, setScene] = useState('idle');
   const tour = useTour();
   return (
     <>
-      <div className={css.stage} data-bg={bg} data-island-stage>
+      <div className={css.stage} data-bg={bg} data-island-stage style={custom}>
         <Island />
         {bg === 'desktop' && <Taskbar />}
+        <div className={css.nightLight} data-on={night} />
       </div>
       <div className={css.toolbar}>
         <div className={css.sceneBar}>
@@ -143,17 +162,21 @@ export function Stage({ bg, onBg }: { bg: StageBg; onBg: (bg: StageBg) => void }
                   transition={{ type: 'spring', visualDuration: 0.28, bounce: 0.18 }}
                 />
               )}
-              <span>{item.label}</span>
+              <span>
+                <T>{item.label}</T>
+              </span>
             </button>
           ))}
           <i />
           <button type="button" data-active={tour.running} onClick={tour.running ? tour.stop : tour.play}>
             <span className={css.tourLabel}>
-              <PlayIcon size={11} weight="fill" /> {tour.running ? 'Stop' : 'Play tour'}
+              <PlayIcon size={11} weight="fill" /> <T>{tour.running ? 'Stop' : 'Play tour'}</T>
             </span>
           </button>
         </div>
-        <span className={css.toolbarHint}>Click the island, or drop a file on it</span>
+        <span className={css.toolbarHint}>
+          <T>Click, hold, swipe or scroll on the island</T>
+        </span>
         <div className={css.bgSwitch}>
           {BACKDROPS.map((value) => (
             <button
@@ -163,7 +186,8 @@ export function Stage({ bg, onBg }: { bg: StageBg; onBg: (bg: StageBg) => void }
               aria-label={`${value} backdrop`}
               data-bg={value}
               data-active={bg === value}
-              onClick={() => onBg(value)}
+              style={value === 'custom' ? { background: stage.image ? `center / cover url("${stage.image}")` : stage.color } : undefined}
+              onClick={() => onStage({ ...stage, bg: value })}
             />
           ))}
         </div>

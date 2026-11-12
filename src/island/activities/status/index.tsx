@@ -1,6 +1,7 @@
 import { CheckCircleIcon, InfoIcon } from '@phosphor-icons/react';
 import { useEffect } from 'react';
 import { defineTransient } from '../../define';
+import { T, translate } from '../../i18n';
 import { emitEffect } from '../../effects';
 import { COMPACT_HEIGHT } from '../../metrics';
 import type { ActivityApi, ActivityViewProps } from '../../types';
@@ -19,7 +20,9 @@ function View({ data }: ActivityViewProps<StatusData>) {
       ) : (
         <DrawnMark kind={data.tone === 'error' ? 'cross' : 'check'} />
       )}
-      <span className={ui.label}>{data.label}</span>
+      <span className={ui.label}>
+        <T>{data.label}</T>
+      </span>
     </div>
   );
 }
@@ -40,7 +43,7 @@ export default defineTransient<StatusData>({
   icon: CheckCircleIcon,
   defaultData: { tone: 'success', label: 'Done' },
   view: {
-    size: (data) => ({ width: Math.min(320, 62 + data.label.length * 7.6), height: COMPACT_HEIGHT }),
+    size: (data) => ({ width: Math.min(320, 62 + translate(data.label).length * 7.6), height: COMPACT_HEIGHT }),
     Component: View,
   },
   duration: 2000,

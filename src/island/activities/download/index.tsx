@@ -2,6 +2,7 @@ import { DownloadSimpleIcon, PauseIcon, PlayIcon, XIcon } from '@phosphor-icons/
 import { useEffect } from 'react';
 import { appOf, type AppId } from '../../apps';
 import { defineLiveActivity } from '../../define';
+import { T } from '../../i18n';
 import { COMPACT_HEIGHT } from '../../metrics';
 import { scaled } from '../../motion/springs';
 import { useIslandStore } from '../../store';
@@ -51,9 +52,9 @@ function Expanded({ data, update, dismiss }: ActivityViewProps<DownloadData>) {
         <div className={cx(ui.stack, ui.grow)}>
           <span className={ui.title}>{data.name}</span>
           <span className={cx(ui.sub, ui.num)}>
-            {megabytes(data.size * data.progress)} of {megabytes(data.size)}
+            {megabytes(data.size * data.progress)} <T>of</T> {megabytes(data.size)}
             {' · '}
-            {data.paused ? 'Paused' : `${data.speed.toFixed(1)} MB/s`}
+            {data.paused ? <T>Paused</T> : `${data.speed.toFixed(1)} MB/s`}
           </span>
         </div>
         <IconButton label={data.paused ? 'Resume' : 'Pause'} size={34} onClick={() => update((prev) => ({ paused: !prev.paused }))}>

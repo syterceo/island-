@@ -233,3 +233,22 @@ npm run capture -- --spec shots.json --outdir captures
 `npm run capture -- --help` lists every option, including pointer scripting (`--mouse`), settings
 (`--set`), other pages (`--path "/?view=gallery" --clip full`) and the dark backdrop
 (`--path "/?view=stage&bg=dark"`). `captures/` is git ignored.
+
+## Gestures, language and themes
+
+`shell/useGestures.ts` adds three gestures on top of click: a horizontal swipe calls the main
+activity's `onSwipe` (next track, next focus phase, flipping stacked notifications), press and
+hold opens the hub even while activities run, and the wheel changes the volume. A gesture
+consumes the click that ends it.
+
+Source strings are English. `i18n.ts` translates them through the dictionary in `i18n.ru.ts`,
+keyed by the English text; use `<T>` for text nodes and `useT()` for attributes. A string without
+an entry stays English. `settings.language` picks the language.
+
+Transient definitions may declare `merge` (how a new alert of the same kind combines with the
+visible one; notifications use it to stack) and `interruptive` (suppressed while the hub's Quiet
+setting is on). The hub's quick settings live in the idle activity's data and survive `reset`.
+
+The `custom` surface takes `settings.surfaceColor`; the shell switches content to dark ink when
+that colour is light. The playground saves a look (settings plus backdrop) to a theme file and
+validates it on import (`playground/theme.ts`).

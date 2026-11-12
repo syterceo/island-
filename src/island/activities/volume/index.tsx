@@ -36,7 +36,7 @@ export default defineTransient<VolumeData>({
     presets: [
       { label: '30%', data: { level: 0.3 } },
       { label: '80%', data: { level: 0.8 } },
-      { label: 'Mute', data: { level: 0 } },
+      { label: '0%', data: { level: 0 } },
     ],
     controls: [{ type: 'range', key: 'level', label: 'Level', min: 0, max: 1, step: 0.05 }],
   },

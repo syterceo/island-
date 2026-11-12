@@ -1,4 +1,4 @@
-import { APPS, type AppId, useIslandStore } from '@/island';
+import { APPS, type AppId, T, useIslandStore } from '@/island';
 import { Section } from './controls';
 import css from './playground.module.css';
 
@@ -29,6 +29,14 @@ const INTEGRATIONS: Integration[] = [
       ],
       ['Join voice', () => island().start('discord', { state: 'voice', joinedAt: Date.now(), speaking: 0 })],
       ['Mention', notify('discord', '#design-review', 'Max: pushed the new island build, take a look')],
+      [
+        'Three in a row',
+        () => {
+          notify('telegram', 'Anna Petrova', 'The new animations look great. Ship it?')();
+          setTimeout(notify('discord', '#design-review', 'Max: pushed the new island build, take a look'), 900);
+          setTimeout(notify('steam', 'Kira is now playing', 'Hades II · Join game'), 1800);
+        },
+      ],
       ['Leave', () => island().end('discord')],
     ],
   },
@@ -42,6 +50,14 @@ const INTEGRATIONS: Integration[] = [
     ],
   },
   { app: 'spotify', hint: 'Desktop app playback', actions: [['Play', play('spotify', 1)]] },
+  {
+    app: 'calendar',
+    hint: 'Upcoming meetings',
+    actions: [
+      ['Meeting in 10 min', () => island().start('meeting', { startsAt: Date.now() + 10 * 60_000 })],
+      ['Starting now', () => island().start('meeting', { startsAt: Date.now() + 8_000 })],
+    ],
+  },
   { app: 'youtube', hint: 'Video and music in the browser', actions: [['Play', play('youtube', 2)]] },
   {
     app: 'telegram',
@@ -91,13 +107,15 @@ export function AppsPage() {
                 </span>
                 <div className={css.cardText}>
                   <strong>{name}</strong>
-                  <span>{hint}</span>
+                  <span>
+                    <T>{hint}</T>
+                  </span>
                 </div>
               </div>
               <div className={css.cardActions}>
                 {actions.map(([label, run]) => (
                   <button key={label} type="button" className={css.chip} data-primary onClick={run}>
-                    {label}
+                    <T>{label}</T>
                   </button>
                 ))}
               </div>
@@ -106,9 +124,7 @@ export function AppsPage() {
         })}
       </div>
       <p className={css.note}>
-        These events are simulated. In the Windows app, music comes from the system media session, which covers
-        SoundCloud, Spotify, YouTube and any other player, and the rest comes from notifications and each app's own
-        interface.
+        <T>These events are simulated. In the Windows app, music comes from the system media session and the rest from notifications and each app.</T>
       </p>
     </Section>
   );
