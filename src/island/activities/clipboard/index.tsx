@@ -1,9 +1,8 @@
-import { CheckCircleIcon } from '@phosphor-icons/react';
+import { CopyIcon } from '@phosphor-icons/react';
 import { defineTransient } from '../../define';
 import { COMPACT_HEIGHT } from '../../metrics';
 import type { ActivityViewProps } from '../../types';
-
-/* PLACEHOLDER transient that exercises the alert contract. */
+import { DrawnMark, ui } from '../../ui/kit';
 
 interface ClipboardData {
   label: string;
@@ -11,20 +10,9 @@ interface ClipboardData {
 
 function View({ data }: ActivityViewProps<ClipboardData>) {
   return (
-    <div
-      style={{
-        width: '100%',
-        height: '100%',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 8,
-        fontSize: 13,
-        fontWeight: 600,
-      }}
-    >
-      <CheckCircleIcon size={18} weight="fill" />
-      {data.label}
+    <div className={ui.compact} style={{ justifyContent: 'center' }}>
+      <DrawnMark />
+      <span className={ui.label}>{data.label}</span>
     </div>
   );
 }
@@ -32,10 +20,19 @@ function View({ data }: ActivityViewProps<ClipboardData>) {
 export default defineTransient<ClipboardData>({
   kind: 'clipboard',
   title: 'Clipboard',
-  description: 'Confirms that something was copied.',
-  icon: CheckCircleIcon,
+  description: 'Confirms that something was copied, with a check that draws itself.',
+  icon: CopyIcon,
   defaultData: { label: 'Copied' },
-  view: { size: { width: 148, height: COMPACT_HEIGHT }, Component: View },
+  view: {
+    size: (data) => ({ width: Math.min(300, 62 + data.label.length * 7.6), height: COMPACT_HEIGHT }),
+    Component: View,
+  },
   duration: 1800,
-  demo: { controls: [{ type: 'text', key: 'label', label: 'Label' }] },
+  demo: {
+    presets: [
+      { label: 'Copied', data: { label: 'Copied' } },
+      { label: 'Link copied', data: { label: 'Link copied to clipboard' } },
+    ],
+    controls: [{ type: 'text', key: 'label', label: 'Label' }],
+  },
 });

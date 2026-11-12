@@ -1,0 +1,600 @@
+/* Layout shared by activity views. */
+.compact {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  height: 100%;
+  padding: 0 12px 0 10px;
+  font-size: var(--island-text-lg);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.center {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+}
+
+.expanded {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  height: 100%;
+  padding: 0 20px 0 22px;
+}
+
+.column {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  padding: 18px 20px 18px;
+  gap: 12px;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.grow {
+  flex: 1;
+  min-width: 0;
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.title {
+  font-size: var(--island-text-lg);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sub {
+  font-size: var(--island-text-sm);
+  font-weight: 600;
+  color: var(--island-fg-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.label {
+  font-size: var(--island-text-md);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.big {
+  font-size: var(--island-text-3xl);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+
+.truncate {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Swap and digits. */
+.swap {
+  display: inline-grid;
+  min-width: 0;
+}
+
+.swapItem {
+  grid-area: 1 / 1;
+  display: block;
+}
+
+.digits {
+  display: inline-flex;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Progress ring. */
+.ring {
+  position: relative;
+  display: inline-grid;
+  flex: none;
+}
+
+.ring svg {
+  transform: rotate(-90deg);
+}
+
+.ringCenter {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+}
+
+/* Wave. */
+.wave {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 2px;
+  color: var(--island-accent);
+  transition: opacity 0.3s ease;
+}
+
+.wave i {
+  width: 3px;
+  height: 100%;
+  border-radius: 2px;
+  background: currentColor;
+  animation: wave calc(var(--d) * var(--island-time-scale)) ease-in-out var(--o) infinite alternate;
+}
+
+.wave[data-style='dots'] {
+  gap: 3px;
+}
+
+.wave[data-style='dots'] i {
+  height: 4px;
+  width: 4px;
+  border-radius: 50%;
+  animation-name: waveDot;
+}
+
+.wave[data-style='line'] {
+  gap: 1.5px;
+}
+
+.wave[data-style='line'] i {
+  width: 1.5px;
+  border-radius: 1px;
+}
+
+/* Paused bars freeze where they are, which reads as a still waveform and never jumps. */
+.wave[data-active='false'] {
+  opacity: 0.45;
+}
+
+.wave[data-active='false'] i {
+  animation-play-state: paused;
+}
+
+@keyframes wave {
+  from {
+    transform: scaleY(0.2);
+  }
+  to {
+    transform: scaleY(1);
+  }
+}
+
+@keyframes waveDot {
+  from {
+    transform: translateY(-4px);
+  }
+  to {
+    transform: translateY(4px);
+  }
+}
+
+/* Buttons. */
+.iconButton {
+  display: grid;
+  flex: none;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--island-fill-2);
+  color: var(--island-fg);
+  transition: background-color 0.2s ease;
+}
+
+.iconButton:hover {
+  background: var(--island-fill-3);
+}
+
+.iconButton[data-tone='ghost'] {
+  background: transparent;
+}
+
+.iconButton[data-tone='ghost']:hover {
+  background: var(--island-fill-1);
+}
+
+.iconButton[data-tone='positive'] {
+  background: var(--island-positive);
+  color: #fff;
+}
+
+.iconButton[data-tone='negative'] {
+  background: var(--island-negative);
+  color: #fff;
+}
+
+.iconButton[data-tone='orange'] {
+  background: color-mix(in srgb, var(--island-orange) 26%, transparent);
+  color: var(--island-orange);
+}
+
+.iconButton[data-tone='accent'] {
+  background: var(--island-accent);
+  color: var(--island-bg);
+}
+
+/* Level bar. */
+.track {
+  flex: 1;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--island-fill-2);
+  overflow: hidden;
+}
+
+.trackFill {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 3px;
+  background: var(--island-fg);
+  transform-origin: 0 50%;
+}
+
+.levelNumber {
+  width: 26px;
+  text-align: right;
+  font-size: var(--island-text-md);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--island-fg-2);
+}
+
+/* Dots and small indicators. */
+.dot {
+  width: 10px;
+  height: 10px;
+  flex: none;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.pulse {
+  animation: pulse calc(1.1s * var(--island-time-scale)) ease-in-out infinite alternate;
+}
+
+@keyframes pulse {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0.45;
+    transform: scale(0.78);
+  }
+}
+
+.spin {
+  animation: spin calc(0.9s * var(--island-time-scale)) linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.wiggle {
+  animation: wiggle calc(0.9s * var(--island-time-scale)) ease-in-out infinite;
+  transform-origin: 50% 60%;
+}
+
+@keyframes wiggle {
+  0%,
+  55%,
+  100% {
+    transform: rotate(0);
+  }
+  10%,
+  30% {
+    transform: rotate(-14deg);
+  }
+  20%,
+  40% {
+    transform: rotate(14deg);
+  }
+}
+
+.shimmer {
+  background: linear-gradient(90deg, var(--island-fg-3) 20%, var(--island-fg) 50%, var(--island-fg-3) 80%);
+  background-size: 200% 100%;
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  animation: shimmer calc(1.4s * var(--island-time-scale)) linear infinite;
+}
+
+@keyframes shimmer {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: -100% 0;
+  }
+}
+
+/* Tiles. */
+.avatar {
+  display: grid;
+  flex: none;
+  place-items: center;
+  border-radius: 50%;
+  color: #fff;
+  font-weight: 700;
+}
+
+.tile {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 11px;
+  color: #fff;
+}
+
+.art {
+  position: relative;
+  display: block;
+  flex: none;
+  overflow: hidden;
+}
+
+.art > span {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: rgb(255 255 255 / 0.9);
+}
+
+/* Music scrubber. */
+.scrub {
+  position: relative;
+  flex: 1;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--island-fill-2);
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.scrubFill {
+  position: absolute;
+  inset: 0;
+  border-radius: 3px;
+  background: var(--island-fg);
+  transform-origin: 0 50%;
+  transition: transform 0.5s linear;
+}
+
+.time {
+  width: 34px;
+  font-size: var(--island-text-xs);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--island-fg-3);
+}
+
+/* Notes. */
+.noteList {
+  flex: 1;
+  min-height: 0;
+  margin: 0 -6px;
+  padding: 0 6px;
+  overflow-y: auto;
+  scrollbar-width: none;
+  mask-image: linear-gradient(#000 calc(100% - 14px), transparent);
+}
+
+.note {
+  overflow: hidden;
+}
+
+.noteInner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+  padding: 8px 6px 8px 12px;
+  border-radius: 12px;
+  background: var(--island-fill-1);
+  font-size: var(--island-text-md);
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.noteInner > span {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.input {
+  flex: 1;
+  min-width: 0;
+  height: 36px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 18px;
+  outline: none;
+  background: var(--island-fill-1);
+  font-size: var(--island-text-md);
+  font-weight: 600;
+  transition: background-color 0.2s ease;
+}
+
+.input::placeholder {
+  color: var(--island-fg-3);
+}
+
+.input:focus {
+  background: var(--island-fill-2);
+}
+
+/* Upload. */
+.dropTarget {
+  position: relative;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: 20px;
+  color: var(--island-accent);
+  font-size: var(--island-text-md);
+  font-weight: 700;
+}
+
+.dropTarget rect {
+  fill: color-mix(in srgb, var(--island-accent) 9%, transparent);
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-dasharray: 7 7;
+  animation: march calc(0.7s * var(--island-time-scale)) linear infinite;
+}
+
+.dropTarget svg:first-child {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+@keyframes march {
+  to {
+    stroke-dashoffset: -14;
+  }
+}
+
+.bob {
+  animation: bob calc(0.8s * var(--island-time-scale)) ease-in-out infinite alternate;
+}
+
+@keyframes bob {
+  from {
+    transform: translateY(-3px);
+  }
+  to {
+    transform: translateY(3px);
+  }
+}
+
+.fileRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: var(--island-text-md);
+  font-weight: 600;
+}
+
+.bar {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--island-fill-2);
+  overflow: hidden;
+}
+
+.barFill {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 2px;
+  background: var(--island-accent);
+  transform-origin: 0 50%;
+  transition: transform 0.25s linear;
+}
+
+/* Hub. */
+.hubTile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  width: 100%;
+  height: 100%;
+  border-radius: 16px;
+  background: var(--island-fill-1);
+  font-size: var(--island-text-xs);
+  font-weight: 700;
+  color: var(--island-fg-2);
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease;
+}
+
+.hubTile:hover {
+  background: var(--island-fill-2);
+  color: var(--island-fg);
+}
+
+/* Battery glyph. */
+.battery {
+  position: relative;
+  width: 27px;
+  height: 13px;
+  flex: none;
+  padding: 2px;
+  border-radius: 4.5px;
+  box-shadow: inset 0 0 0 1px var(--island-fg-3);
+}
+
+.battery::after {
+  content: '';
+  position: absolute;
+  top: 4px;
+  right: -3px;
+  width: 2px;
+  height: 5px;
+  border-radius: 0 1px 1px 0;
+  background: var(--island-fg-3);
+}
+
+.battery > span {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 2.5px;
+  background: currentColor;
+  transform-origin: 0 50%;
+}
+
+/* Dictation transcript. */
+.transcript {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  font-size: var(--island-text-lg);
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--island-fg);
+}
+
+.transcript span {
+  display: inline-block;
+  white-space: pre;
+}
