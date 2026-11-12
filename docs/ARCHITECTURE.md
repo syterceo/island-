@@ -110,6 +110,19 @@ owns the shape (size, radius, attachment, bubble), the crossfade between views, 
 (press, hover, click to expand, click outside and Escape to collapse, holding an alert while
 hovered) and the effects (`bump`, `shake`). It renders `<IslandControllers />` once.
 
+The shape is one SVG path on a fixed canvas (`shell/shape.ts` builds it, with smoothed corners
+and the concave fillets of the notch), and the same path clips the content. Springs drive plain
+numbers (width, height, radius, offset, bubble position and scale) and the path is rebuilt from
+them every frame. Views never take part in layout while the shape moves: each sits at its final
+size at a fixed position, so nothing reflows or snaps when an animation ends. Motion elements
+are bound to derived copies of the geometry values, never to the values themselves, because an
+unmounting motion element stops the values it is bound to.
+
+The glass surface blurs what is behind it with a `backdrop-filter` element sized to the shape.
+That element can only be clipped by a border radius, so glass uses circular corners.
+
+Files dragged over the window open the upload drop target (`hooks/useFileDrop.ts`).
+
 Each view is wrapped in a motion element that moves through the variant labels in
 `motion/variants.ts` (`initial` -> `enter`, then `exit`). Motion elements inside a view that
 declare variants with the same labels animate in lockstep with the swap; this is how content
