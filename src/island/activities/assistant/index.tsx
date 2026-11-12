@@ -2,7 +2,6 @@ import { CopyIcon, SparkleIcon, StopIcon } from '@phosphor-icons/react';
 import { motion } from 'motion/react';
 import { useEffect } from 'react';
 import { defineLiveActivity } from '../../define';
-import { emitEffect } from '../../effects';
 import { T, useLanguage } from '../../i18n';
 import { COMPACT_HEIGHT } from '../../metrics';
 import { fx, scaled, tween } from '../../motion/springs';
@@ -124,7 +123,6 @@ function Controller({ data, update, dismiss }: ActivityApi<AssistantData>) {
       );
       return () => clearTimeout(timer);
     }
-    emitEffect('bump');
     const timer = setTimeout(dismiss, scaled(9000));
     return () => clearTimeout(timer);
   }, [phase, words, total, update, dismiss]);

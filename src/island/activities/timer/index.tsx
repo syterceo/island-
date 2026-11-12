@@ -2,7 +2,6 @@ import { PauseIcon, PlayIcon, TimerIcon, XIcon } from '@phosphor-icons/react';
 import { useEffect } from 'react';
 import { defineLiveActivity } from '../../define';
 import { T } from '../../i18n';
-import { emitEffect } from '../../effects';
 import { useNow } from '../../hooks/useNow';
 import { COMPACT_HEIGHT } from '../../metrics';
 import { useIslandStore } from '../../store';
@@ -97,7 +96,6 @@ function Controller({ data, dismiss }: ActivityApi<TimerData>) {
     if (!finished) return;
     dismiss();
     useIslandStore.getState().show('status', { tone: 'success', label: 'Timer finished' });
-    emitEffect('bump');
   }, [finished, dismiss]);
   return null;
 }

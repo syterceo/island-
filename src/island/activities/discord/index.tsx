@@ -51,7 +51,8 @@ function Compact({ data }: ActivityViewProps<DiscordData>) {
     return (
       <div className={ui.compact} style={{ gap: 9, justifyContent: 'flex-start', padding: '0 13px 0 7px' }}>
         <AppTile app="discord" />
-        <span className={cx(ui.label, ui.shimmer)}>{data.caller} <T>is calling</T>
+        <span className={ui.label}>
+          {data.caller} <T>is calling</T>
         </span>
       </div>
     );

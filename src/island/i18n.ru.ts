@@ -171,8 +171,8 @@ export const RU: Record<string, string> = {
   'Screen recording': 'Запись экрана',
   'Elapsed time with a live level and a stop control.': 'Время записи, уровень звука и кнопка остановки.',
   Notification: 'Уведомление',
-  'Banners from apps. Several in a row stack up and can be flipped through or swiped.':
-    'Баннеры приложений. Несколько подряд складываются в стопку, её можно листать кнопками или свайпом.',
+  'Banners from apps. Several in a row are counted and can be flipped through or swiped.':
+    'Баннеры приложений. Несколько подряд считаются, их можно листать стрелками или свайпом.',
   Volume: 'Громкость',
   'Level that updates in place: showing it again moves the bar.':
     'Уровень обновляется на месте: повторный показ просто двигает полосу.',
@@ -189,7 +189,7 @@ export const RU: Record<string, string> = {
   Status: 'Статус',
   'Success, error and info results. An error shakes the island.':
     'Успех, ошибка и информация. При ошибке остров качает «головой».',
-  'Sign in confirmation: the lock opens with a small bump.': 'Подтверждение входа: замок открывается с лёгким толчком.',
+  'Sign in confirmation: the lock opens.': 'Подтверждение входа: замок открывается.',
   'Keyboard layout': 'Раскладка',
   'Shows the input language when it is switched with Win + Space or Alt + Shift.':
     'Показывает язык ввода при переключении через Win + Пробел или Alt + Shift.',
