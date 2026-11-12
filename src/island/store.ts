@@ -14,6 +14,12 @@ export const DEFAULT_SETTINGS: IslandSettings = {
   outline: true,
   shadow: true,
   reducedMotion: 'system',
+  surface: 'black',
+  accent: 'fg',
+  scale: 1,
+  glow: false,
+  waveStyle: 'bars',
+  textReveal: 'words',
 };
 
 /** A transient stays at least this long before a queued one may replace it. */

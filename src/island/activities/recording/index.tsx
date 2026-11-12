@@ -1,75 +1,62 @@
-import { RecordIcon } from '@phosphor-icons/react';
+import { RecordIcon, StopIcon } from '@phosphor-icons/react';
 import { defineLiveActivity } from '../../define';
 import { useNow } from '../../hooks/useNow';
 import { COMPACT_HEIGHT } from '../../metrics';
+import { useIslandStore } from '../../store';
 import type { ActivityViewProps } from '../../types';
-
-/* PLACEHOLDER second live activity, so that split mode can be exercised. */
+import { cx, Digits, formatClock, IconButton, Rise, ui, Wave } from '../../ui/kit';
 
 interface RecordingData {
   startedAt: number;
 }
 
-function elapsed(data: RecordingData, now: number): string {
-  const total = Math.max(0, Math.floor((now - data.startedAt) / 1000));
-  return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`;
-}
+const RED = 'var(--island-negative)';
 
-const dot = <RecordIcon size={18} weight="fill" color="var(--island-negative)" />;
+const Dot = ({ size = 10 }: { size?: number }) => (
+  <span className={cx(ui.dot, ui.pulse)} style={{ width: size, height: size, color: RED }} />
+);
 
 function Compact({ data }: ActivityViewProps<RecordingData>) {
   const now = useNow(500);
   return (
-    <div
-      style={{
-        width: '100%',
-        height: '100%',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: '0 12px 0 9px',
-        fontSize: 15,
-        fontWeight: 700,
-        fontVariantNumeric: 'tabular-nums',
-      }}
-    >
-      {dot}
-      {elapsed(data, now)}
+    <div className={ui.compact} style={{ padding: '0 12px 0 13px' }}>
+      <Dot />
+      <Digits value={formatClock(now - data.startedAt)} />
     </div>
   );
 }
 
 function Minimal() {
-  return <div style={{ width: '100%', height: '100%', display: 'grid', placeItems: 'center' }}>{dot}</div>;
+  return (
+    <div className={ui.center}>
+      <Dot />
+    </div>
+  );
 }
 
 function Expanded({ data, dismiss }: ActivityViewProps<RecordingData>) {
   const now = useNow(500);
+  const stop = () => {
+    dismiss();
+    useIslandStore.getState().show('status', { tone: 'success', label: 'Recording saved' });
+  };
   return (
-    <div
-      style={{
-        width: '100%',
-        height: '100%',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: '0 20px 0 24px',
-        fontSize: 22,
-        fontWeight: 600,
-        fontVariantNumeric: 'tabular-nums',
-      }}
-    >
-      <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        {dot}
-        {elapsed(data, now)}
-      </span>
-      <button
-        type="button"
-        onClick={dismiss}
-        style={{ height: 36, padding: '0 14px', borderRadius: 18, background: 'var(--island-fill-2)', fontSize: 13, fontWeight: 600 }}
-      >
-        Stop
-      </button>
+    <div className={ui.expanded}>
+      <Rise i={0} className={ui.stack}>
+        <span className={ui.sub} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <Dot size={8} /> Screen recording
+        </span>
+        <Digits className={ui.big} value={formatClock(now - data.startedAt)} />
+      </Rise>
+      <span className={ui.grow} />
+      <Rise i={1}>
+        <Wave bars={12} height={26} color={RED} variant="line" />
+      </Rise>
+      <Rise i={2}>
+        <IconButton label="Stop" tone="negative" size={48} onClick={stop}>
+          <StopIcon size={20} weight="fill" />
+        </IconButton>
+      </Rise>
     </div>
   );
 }
@@ -77,10 +64,10 @@ function Expanded({ data, dismiss }: ActivityViewProps<RecordingData>) {
 export default defineLiveActivity<RecordingData>({
   kind: 'recording',
   title: 'Screen Recording',
-  description: 'Elapsed time with a stop control.',
+  description: 'Elapsed time with a live level and a stop control.',
   icon: RecordIcon,
   defaultData: () => ({ startedAt: Date.now() }),
-  compact: { size: { width: 124, height: COMPACT_HEIGHT }, Component: Compact },
+  compact: { size: { width: 104, height: COMPACT_HEIGHT }, Component: Compact },
   minimal: Minimal,
-  expanded: { size: { width: 300, height: 76 }, Component: Expanded },
+  expanded: { size: { width: 340, height: 92 }, Component: Expanded },
 });
