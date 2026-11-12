@@ -1,14 +1,17 @@
 import { MusicNotesIcon, PauseIcon, PlayIcon, SkipBackIcon, SkipForwardIcon } from '@phosphor-icons/react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useEffect, type MouseEvent } from 'react';
+import { appOf, type AppId } from '../../apps';
 import { defineLiveActivity } from '../../define';
 import { useNow } from '../../hooks/useNow';
 import { COMPACT_HEIGHT } from '../../metrics';
-import { fx, spring, tween } from '../../motion/springs';
+import { fx, tween } from '../../motion/springs';
 import type { ActivityApi, ActivityViewProps } from '../../types';
-import { formatClock, IconButton, Rise, Swap, ui, Wave } from '../../ui/kit';
+import { AppTile, cx, formatClock, IconButton, Rise, Swap, ui, Wave } from '../../ui/kit';
 
 interface MusicData {
+  /** The app the audio comes from. */
+  source: AppId;
   index: number;
   playing: boolean;
   /** Playback position at `anchorAt`. */
@@ -51,16 +54,16 @@ function skip(update: Update, step: number) {
 function Art({ data, size }: { data: MusicData; size: number }) {
   const [from, to] = trackOf(data).colors;
   return (
-    <span className={ui.art} style={{ width: size, height: size, borderRadius: size * 0.28 }}>
+    <span className={ui.art} style={{ width: size, height: size, borderRadius: Math.round(size * 0.14) }}>
       <AnimatePresence initial={false}>
         <motion.span
           key={data.index}
           style={{ background: `linear-gradient(135deg, ${from}, ${to})` }}
-          initial={{ opacity: 0, scale: fx.scale(1.25) }}
-          animate={{ opacity: 1, scale: 1, transition: spring('content') }}
+          initial={{ opacity: 0, scale: fx.scale(1.15) }}
+          animate={{ opacity: 1, scale: 1, transition: tween(0.45) }}
           exit={{ opacity: 0, transition: tween(0.3) }}
         >
-          <MusicNotesIcon size={size * 0.5} weight="fill" />
+          <MusicNotesIcon size={size * 0.36} weight="fill" />
         </motion.span>
       </AnimatePresence>
     </span>
@@ -68,10 +71,15 @@ function Art({ data, size }: { data: MusicData; size: number }) {
 }
 
 function Compact({ data }: ActivityViewProps<MusicData>) {
+  const track = trackOf(data);
   return (
-    <div className={ui.compact} style={{ padding: '0 13px 0 6px' }}>
-      <Art data={data} size={24} />
-      <Wave bars={5} height={15} active={data.playing} color={trackOf(data).colors[0]} />
+    <div className={ui.compact} style={{ gap: 9, padding: '0 13px 0 7px' }}>
+      <AppTile app={data.source} />
+      <Swap id={data.index} className={cx(ui.label, ui.grow)} truncate>
+        {track.title}
+        <span style={{ color: 'var(--island-fg-3)' }}> · {track.artist}</span>
+      </Swap>
+      <Wave bars={4} height={14} active={data.playing} color="var(--island-tint)" />
     </div>
   );
 }
@@ -79,7 +87,7 @@ function Compact({ data }: ActivityViewProps<MusicData>) {
 function Minimal({ data }: ActivityViewProps<MusicData>) {
   return (
     <div className={ui.center}>
-      <Art data={data} size={22} />
+      <AppTile app={data.source} size={20} />
     </div>
   );
 }
@@ -96,41 +104,54 @@ function Expanded({ data, update }: ActivityViewProps<MusicData>) {
   };
 
   return (
-    <div className={ui.column} style={{ padding: '20px 22px 16px', gap: 14 }}>
-      <Rise i={0} className={ui.row} style={{ gap: 14 }}>
-        <Art data={data} size={58} />
-        <div className={`${ui.stack} ${ui.grow}`}>
-          <Swap id={data.index} className={ui.title} truncate>
+    <div className={ui.expanded} style={{ gap: 16, padding: 14 }}>
+      <Rise i={0} style={{ position: 'relative', flex: 'none' }}>
+        <Art data={data} size={120} />
+        <span style={{ position: 'absolute', left: 8, bottom: 8 }}>
+          <AppTile app={data.source} size={24} />
+        </span>
+      </Rise>
+      <div className={cx(ui.stack, ui.grow)} style={{ gap: 0, height: '100%', padding: '2px 4px 0 0' }}>
+        <Rise i={1} className={ui.stack}>
+          <span className={ui.caption} style={{ color: 'var(--island-tint)' }}>
+            Playing on {appOf(data.source).name}
+          </span>
+          <Swap id={data.index} className={ui.title} style={{ fontSize: 17, marginTop: 3 }} truncate>
             {track.title}
           </Swap>
           <Swap id={data.index} className={ui.sub} truncate>
             {track.artist}
           </Swap>
-        </div>
-        <Wave bars={6} height={22} active={data.playing} color={track.colors[0]} />
-      </Rise>
-      <Rise i={1} className={ui.row} style={{ gap: 10 }}>
-        <span className={ui.time}>{formatClock(at)}</span>
-        <div className={ui.scrub} onClick={seek}>
-          <span className={ui.scrubFill} style={{ transform: `scaleX(${at / track.durationMs})` }} />
-        </div>
-        <span className={ui.time} style={{ textAlign: 'right' }}>
-          -{formatClock(track.durationMs - at)}
-        </span>
-      </Rise>
-      <Rise i={2} className={ui.row} style={{ justifyContent: 'center', gap: 22 }}>
-        <IconButton label="Previous" tone="ghost" onClick={() => skip(update, -1)}>
-          <SkipBackIcon size={24} weight="fill" />
-        </IconButton>
-        <IconButton label={data.playing ? 'Pause' : 'Play'} tone="ghost" size={46} onClick={() => toggle(update)}>
-          <Swap id={data.playing ? 'pause' : 'play'} dy={0}>
-            {data.playing ? <PauseIcon size={30} weight="fill" /> : <PlayIcon size={30} weight="fill" />}
-          </Swap>
-        </IconButton>
-        <IconButton label="Next" tone="ghost" onClick={() => skip(update, 1)}>
-          <SkipForwardIcon size={24} weight="fill" />
-        </IconButton>
-      </Rise>
+        </Rise>
+        <span className={ui.grow} />
+        <Rise i={2} className={ui.row} style={{ gap: 9 }}>
+          <span className={ui.time}>{formatClock(at)}</span>
+          <div className={ui.scrub} onClick={seek}>
+            <span
+              className={ui.scrubFill}
+              style={{ transform: `scaleX(${at / track.durationMs})`, background: 'var(--island-tint)' }}
+            />
+          </div>
+          <span className={ui.time} style={{ textAlign: 'right' }}>
+            {formatClock(track.durationMs)}
+          </span>
+        </Rise>
+        <Rise i={3} className={ui.row} style={{ gap: 6, marginTop: 10 }}>
+          <IconButton label="Previous" size={34} onClick={() => skip(update, -1)}>
+            <SkipBackIcon size={16} weight="fill" />
+          </IconButton>
+          <IconButton label={data.playing ? 'Pause' : 'Play'} tone="active" size={34} onClick={() => toggle(update)}>
+            <Swap id={data.playing ? 'pause' : 'play'} dy={0} fit={false}>
+              {data.playing ? <PauseIcon size={16} weight="fill" /> : <PlayIcon size={16} weight="fill" />}
+            </Swap>
+          </IconButton>
+          <IconButton label="Next" size={34} onClick={() => skip(update, 1)}>
+            <SkipForwardIcon size={16} weight="fill" />
+          </IconButton>
+          <span className={ui.grow} />
+          <Wave bars={7} height={20} active={data.playing} color="var(--island-tint)" />
+        </Rise>
+      </div>
     </div>
   );
 }
@@ -144,17 +165,31 @@ function Controller({ data, update }: ActivityApi<MusicData>) {
   return null;
 }
 
+const from = (source: AppId, index: number) => () => ({
+  source,
+  index,
+  playing: true,
+  positionMs: 42_000,
+  anchorAt: Date.now(),
+});
+
 export default defineLiveActivity<MusicData>({
   kind: 'music',
-  title: 'Music',
-  description: 'Now playing with artwork, scrubber and transport controls.',
+  title: 'Now playing',
+  description: 'Music from any player. The island takes the colour of the app it comes from.',
   icon: MusicNotesIcon,
-  defaultData: () => ({ index: 0, playing: true, positionMs: 42_000, anchorAt: Date.now() }),
-  compact: { size: { width: 148, height: COMPACT_HEIGHT }, Component: Compact },
+  tint: (data) => appOf(data.source).color,
+  defaultData: from('soundcloud', 0),
+  compact: { size: { width: 236, height: COMPACT_HEIGHT }, Component: Compact },
   minimal: Minimal,
-  expanded: { size: { width: 380, height: 192 }, Component: Expanded },
+  expanded: { size: { width: 420, height: 148, radius: 30 }, Component: Expanded },
   Controller,
   demo: {
+    presets: [
+      { label: 'SoundCloud', data: from('soundcloud', 0) },
+      { label: 'Spotify', data: from('spotify', 1) },
+      { label: 'YouTube', data: from('youtube', 2) },
+    ],
     controls: [
       { type: 'action', label: 'Play / pause', run: (api) => toggle(api.update) },
       { type: 'action', label: 'Next track', run: (api) => skip(api.update, 1) },

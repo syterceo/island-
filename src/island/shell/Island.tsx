@@ -37,9 +37,11 @@ const PAD_BOTTOM = 96;
 const CANVAS_W = MAX_SIZE.width + MARGIN_X * 2;
 const CANVAS_H = MAX_SIZE.height + PAD_TOP + PAD_BOTTOM;
 const CX = CANVAS_W / 2;
-const EAR = 8;
+const EAR = 7;
+const MIN_RADIUS = 6;
+const LIGHT_HEIGHT = 22;
 
-type GeoKey = 'w' | 'h' | 'r' | 'x' | 'att' | 'bx' | 'bs';
+type GeoKey = 'w' | 'h' | 'r' | 'x' | 'att' | 'bx' | 'bs' | 'br';
 type Geometry = Record<GeoKey, MotionValue<number>>;
 
 function useGeometry(initial: Record<GeoKey, number>): Geometry {
@@ -60,8 +62,10 @@ interface Morph {
 }
 
 // Content follows the shape part of the way, so a swap reads as one material changing size.
-const follow = (ratio: number) => Math.min(1.14, Math.max(0.8, 1 + (ratio - 1) * 0.45));
+const follow = (ratio: number) => Math.min(1.1, Math.max(0.86, 1 + (ratio - 1) * 0.35));
 
+// Content uses tweens: they land exactly on their target, so the last frame of a swap is the
+// resting frame and nothing creeps into place afterwards. Only the shape is a spring.
 const viewVariants = {
   [VIEW_STATE.initial]: (morph: Morph) => ({ opacity: 0, scale: fx.scale(morph.enter), filter: fx.blur(10) }),
   [VIEW_STATE.enter]: () => ({
@@ -70,8 +74,8 @@ const viewVariants = {
     filter: fx.blur(0),
     transition: {
       opacity: tween(0.24, { delay: 0.06 }),
-      filter: tween(0.32, { delay: 0.04 }),
-      scale: spring('content', { delay: 0.02 }),
+      filter: tween(0.3, { delay: 0.04 }),
+      scale: tween(0.4, { delay: 0.02 }),
     },
   }),
   [VIEW_STATE.exit]: (morph: Morph) => ({
@@ -82,11 +86,24 @@ const viewVariants = {
   }),
 };
 
+const bubbleVariants = {
+  [VIEW_STATE.initial]: () => ({ opacity: 0, scale: fx.scale(0.7), filter: fx.blur(6) }),
+  [VIEW_STATE.enter]: () => ({ opacity: 1, scale: 1, filter: fx.blur(0), transition: tween(0.3) }),
+  [VIEW_STATE.exit]: () => ({ opacity: 0, scale: fx.scale(0.7), filter: fx.blur(6), transition: tween(0.14) }),
+};
+
 /** Sizes the blurred backdrop of the glass surface to a shape. */
-function placeBackdrop(element: HTMLDivElement | null, cx: number, width: number, height: number, radius: number, att: number) {
+function placeBackdrop(
+  element: HTMLDivElement | null,
+  cx: number,
+  width: number,
+  height: number,
+  radius: number,
+  att: number,
+) {
   if (!element) return;
-  const top = Math.min(radius, width / 2, height / 2) * Math.max(0, att * 2 - 1);
   const bottom = Math.min(radius, width / 2, height / 2);
+  const top = bottom * Math.max(0, att * 2 - 1);
   element.style.left = `${cx - width / 2}px`;
   element.style.top = `${PAD_TOP}px`;
   element.style.width = `${width}px`;
@@ -94,11 +111,10 @@ function placeBackdrop(element: HTMLDivElement | null, cx: number, width: number
   element.style.borderRadius = `${top}px ${top}px ${bottom}px ${bottom}px`;
 }
 
-const bubbleVariants = {
-  [VIEW_STATE.initial]: () => ({ opacity: 0, scale: fx.scale(0.6), filter: fx.blur(6) }),
-  [VIEW_STATE.enter]: () => ({ opacity: 1, scale: 1, filter: fx.blur(0), transition: spring('content') }),
-  [VIEW_STATE.exit]: () => ({ opacity: 0, scale: fx.scale(0.6), filter: fx.blur(6), transition: tween(0.14) }),
-};
+function resolveTint(view: ResolvedView): string | null {
+  const { tint } = view.definition;
+  return (typeof tint === 'function' ? tint(view.instance.data) : tint) ?? null;
+}
 
 export function Island() {
   const { mode, main, bubble } = usePresentation();
@@ -107,6 +123,7 @@ export function Island() {
   const fillRef = useRef<SVGPathElement>(null);
   const outlineRef = useRef<SVGPathElement>(null);
   const clipRef = useRef<HTMLDivElement>(null);
+  const lightRef = useRef<HTMLDivElement>(null);
   const backdropRef = useRef<HTMLDivElement>(null);
   const bubbleBackdropRef = useRef<HTMLDivElement>(null);
   const hoverTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -117,19 +134,22 @@ export function Island() {
   const expanded = mode === 'expanded';
   const floating = settings.attachment === 'floating';
   const { width, height, radius } = main.size;
-  // With a bubble the pair is centred, so the main pill shifts left by half the bubble footprint.
+  // Roundness pulls every radius from a full pill towards a tight rounded rectangle.
+  const soften = (value: number) => Math.min(value, MIN_RADIUS + (value - MIN_RADIUS) * settings.roundness);
+  // With a bubble the pair is centred, so the main shape shifts left by half the bubble footprint.
   const shift = bubble ? -(BUBBLE_GAP + BUBBLE_SIZE) / 2 : 0;
   const lift = hovered && !expanded && mode !== 'transient' && settings.expandTrigger === 'click' ? 1 : 0;
 
   const target: Record<GeoKey, number> = {
-    w: width + lift * 8,
+    w: width + lift * 6,
     h: height + lift * 2,
-    r: radius + lift,
+    r: soften(radius),
     x: shift,
     att: floating ? 1 : 0,
     // Hidden, the bubble rests inside the right end of the main shape and grows out of it.
-    bx: bubble ? shift + width / 2 + BUBBLE_GAP + BUBBLE_SIZE / 2 : width / 2 - BUBBLE_SIZE / 2,
+    bx: bubble ? shift + width / 2 + lift * 3 + BUBBLE_GAP + BUBBLE_SIZE / 2 : width / 2 - BUBBLE_SIZE / 2,
     bs: bubble ? 1 : 0.5,
+    br: soften(BUBBLE_SIZE / 2),
   };
   const geo = useGeometry(target);
 
@@ -137,12 +157,14 @@ export function Island() {
   useEffect(() => {
     const area = target.w * target.h;
     const transition =
-      previous.current.lift !== lift ? spring('snappy') : spring(area >= previous.current.area ? 'morph' : 'collapse');
+      previous.current.lift !== lift
+        ? spring('snappy', { bounce: 0 })
+        : spring(area >= previous.current.area ? 'morph' : 'collapse');
     previous.current = { area, lift };
     for (const key of Object.keys(target) as GeoKey[]) animate(geo[key], target[key], transition);
     // The target is fully described by its numbers.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [target.w, target.h, target.r, target.x, target.att, target.bx, target.bs]);
+  }, [target.w, target.h, target.r, target.x, target.att, target.bx, target.bs, target.br]);
 
   const { surface } = settings;
   // The blur behind glass can only be clipped by a border radius, so glass uses circular corners.
@@ -152,41 +174,50 @@ export function Island() {
       const att = geo.att.get();
       const r = geo.r.get();
       const scale = geo.bs.get();
+      const cx = CX + geo.x.get();
+      const w = geo.w.get();
+      const h = geo.h.get();
+      // Halfway through an attachment change the top corners are square.
+      const ear = Math.max(0, 1 - att * 2);
+      const top = Math.max(0, att * 2 - 1);
       // At rest inside the main shape the bubble is left out, so translucent surfaces show no seam.
       const bubbleOut = scale > 0.505;
-      const main =
-        islandPath({
-          cx: CX + geo.x.get(),
-          top: PAD_TOP,
-          width: geo.w.get(),
-          height: geo.h.get(),
-          radius: r,
-          // Halfway through an attachment change the top corners are square.
-          ear: EAR * Math.max(0, 1 - att * 2),
-          topRadius: r * Math.max(0, att * 2 - 1),
-          smoothing: cornerSmoothing,
-        });
-      const d = !bubbleOut
-        ? main
-        : main +
-          // The bubble is a small island of its own, so it meets the screen edge the same way.
-        islandPath({
+      const side = bubbleOut ? BUBBLE_SIZE * scale : 0;
+      const bubbleRadius = geo.br.get() * scale;
+
+      let d = islandPath({
+        cx,
+        top: PAD_TOP,
+        width: w,
+        height: h,
+        radius: r,
+        ear: EAR * ear,
+        topRadius: r * top,
+        smoothing: cornerSmoothing,
+      });
+      if (bubbleOut) {
+        // The bubble is a small island of its own, so it meets the screen edge the same way.
+        d += islandPath({
           cx: CX + geo.bx.get(),
           top: PAD_TOP,
-          width: BUBBLE_SIZE * scale,
-          height: BUBBLE_SIZE * scale,
-          radius: (BUBBLE_SIZE / 2) * scale,
-          ear: EAR * scale * Math.max(0, 1 - att * 2),
-          topRadius: (BUBBLE_SIZE / 2) * scale * Math.max(0, att * 2 - 1),
+          width: side,
+          height: side,
+          radius: bubbleRadius,
+          ear: EAR * scale * ear,
+          topRadius: bubbleRadius * top,
           smoothing: cornerSmoothing,
         });
+      }
+
       fillRef.current?.setAttribute('d', d);
       outlineRef.current?.setAttribute('d', d);
-      const clip = `path("${d}")`;
-      if (clipRef.current) clipRef.current.style.clipPath = clip;
-      placeBackdrop(backdropRef.current, CX + geo.x.get(), geo.w.get(), geo.h.get(), r, att);
-      const side = bubbleOut ? BUBBLE_SIZE * scale : 0;
-      placeBackdrop(bubbleBackdropRef.current, CX + geo.bx.get(), side, side, side / 2, att);
+      if (clipRef.current) clipRef.current.style.clipPath = `path("${d}")`;
+      if (lightRef.current) {
+        lightRef.current.style.transform = `translate(${cx - w / 2}px, ${PAD_TOP + h - LIGHT_HEIGHT}px)`;
+        lightRef.current.style.width = `${w}px`;
+      }
+      placeBackdrop(backdropRef.current, cx, w, h, r, att);
+      placeBackdrop(bubbleBackdropRef.current, CX + geo.bx.get(), side, side, bubbleRadius, att);
     };
     draw();
     const stops = Object.values(geo).map((value) => value.on('change', () => frame.render(draw)));
@@ -194,7 +225,7 @@ export function Island() {
       for (const stop of stops) stop();
       cancelFrame(draw);
     };
-  }, [geo, cornerSmoothing, surface]);
+  }, [geo, cornerSmoothing, surface, settings.edgeLight]);
 
   // One shot gestures of the whole island.
   const fxScale = useRef(motionValue(1)).current;
@@ -204,9 +235,9 @@ export function Island() {
       onEffect((effect) => {
         if (fx.scale(0) !== 0) return;
         if (effect === 'bump') {
-          animate(fxScale, [1, 1.07, 1], { duration: scaled(0.42), ease: [0.22, 1, 0.36, 1], times: [0, 0.3, 1] });
+          animate(fxScale, [1, 1.05, 1], { duration: scaled(0.42), ease: [0.22, 1, 0.36, 1], times: [0, 0.3, 1] });
         } else {
-          animate(fxX, [0, -11, 9, -6, 3, 0], { duration: scaled(0.45), ease: 'easeOut' });
+          animate(fxX, [0, -10, 8, -5, 2, 0], { duration: scaled(0.45), ease: 'easeOut' });
         }
       }),
     [fxScale, fxX],
@@ -231,6 +262,8 @@ export function Island() {
 
   useEffect(() => () => clearTimeout(hoverTimer.current), []);
 
+  const release = () => animate(fxScale, 1, tween(0.22));
+
   const onPointerEnter = () => {
     setHovered(true);
     clearTimeout(hoverTimer.current);
@@ -248,7 +281,7 @@ export function Island() {
     else if (settings.expandTrigger === 'hover' && store.expandedId !== null) {
       hoverTimer.current = setTimeout(() => useIslandStore.getState().collapse(), 320);
     }
-    animate(fxScale, 1, spring('snappy'));
+    release();
   };
 
   // Scales for the running swap, fixed at the moment the main view changes.
@@ -274,11 +307,15 @@ export function Island() {
   const bubbleX = useTransform(geo.bx, (value) => value);
   const bubbleScale = useTransform(geo.bs, (value) => value);
 
+  const accent = settings.accent === 'fg' ? 'var(--island-fg)' : settings.accent;
+  const tint = mode === 'idle' ? 'transparent' : (resolveTint(main) ?? accent);
+
   const rootStyle = {
     top: floating ? FLOATING_TOP : 0,
     transform: settings.scale === 1 ? undefined : `scale(${settings.scale})`,
     '--island-time-scale': settings.timeScale,
-    '--island-accent': settings.accent === 'fg' ? 'var(--island-fg)' : settings.accent,
+    '--island-accent': accent,
+    '--island-tint': tint,
   } as CSSProperties;
 
   return (
@@ -289,7 +326,7 @@ export function Island() {
       data-surface={surface}
       data-shadow={settings.shadow}
       data-outline={settings.outline}
-      data-glow={settings.glow && mode !== 'idle'}
+      data-glow={settings.glow}
       className={css.root}
       style={rootStyle}
     >
@@ -322,15 +359,16 @@ export function Island() {
           onPointerEnter={onPointerEnter}
           onPointerLeave={onPointerLeave}
           onPointerDown={() => {
-            if (!expanded) animate(fxScale, fx.scale(0.97), spring('snappy'));
+            if (!expanded) animate(fxScale, fx.scale(0.975), tween(0.12));
           }}
-          onPointerUp={() => animate(fxScale, 1, spring('snappy'))}
+          onPointerUp={release}
           onClick={() => {
             const store = useIslandStore.getState();
             if (mode === 'transient') store.dismissTransient();
             else if (!expanded) store.expand();
           }}
         >
+          {settings.edgeLight && <div ref={lightRef} className={css.light} style={{ height: LIGHT_HEIGHT }} />}
           <AnimatePresence initial={false} custom={morph}>
             <motion.div
               key={main.key}

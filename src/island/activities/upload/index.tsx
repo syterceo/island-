@@ -5,7 +5,7 @@ import { COMPACT_HEIGHT } from '../../metrics';
 import { scaled } from '../../motion/springs';
 import { useIslandStore } from '../../store';
 import type { ActivityApi, ActivityViewProps } from '../../types';
-import { cx, DrawnMark, ProgressRing, Rise, Swap, ui } from '../../ui/kit';
+import { Bar, cx, DrawnMark, ProgressRing, Rise, Swap, ui } from '../../ui/kit';
 import { addFiles, type UploadData, type UploadFile } from './actions';
 
 function total(files: UploadFile[]): number {
@@ -51,7 +51,7 @@ function DropTarget() {
       <svg aria-hidden>
         <rect x="1" y="1" rx="19" style={{ width: 'calc(100% - 2px)', height: 'calc(100% - 2px)' }} />
       </svg>
-      <CloudArrowUpIcon size={30} weight="fill" className={ui.bob} />
+      <CloudArrowUpIcon size={30} weight="fill" />
       Drop files or click to choose
       <input
         type="file"
@@ -86,9 +86,9 @@ function FileList({ files }: { files: UploadFile[] }) {
               {file.progress >= 1 ? <DrawnMark size={15} /> : bytes(file.size)}
             </Swap>
           </div>
-          <div className={ui.bar}>
-            <span className={ui.barFill} style={{ transform: `scaleX(${file.progress})` }} />
-          </div>
+          <span style={{ display: 'flex' }}>
+            <Bar value={file.progress} />
+          </span>
         </div>
       ))}
     </>
@@ -152,6 +152,7 @@ export default defineLiveActivity<UploadData>({
   title: 'File upload',
   description: 'Drag files onto the window: the island opens a drop target, then tracks progress.',
   icon: CloudArrowUpIcon,
+  tint: '#30d158',
   defaultData: { dropping: false, files: [] },
   compact: { size: { width: 104, height: COMPACT_HEIGHT }, Component: Compact },
   minimal: Minimal,
