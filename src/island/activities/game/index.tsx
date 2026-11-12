@@ -76,7 +76,7 @@ function Meter({ label, value, color, fill }: { label: string; value: string; co
 }
 
 function Expanded({ data }: ActivityViewProps<GameData>) {
-  const now = useNow(1000);
+  const now = useNow(1000, true, data.startedAt);
   return (
     <div className={ui.column} style={{ padding: '14px 22px 16px', gap: 12 }}>
       <Rise i={0} className={ui.row} style={{ gap: 9 }}>
