@@ -1,9 +1,8 @@
-import { SpeakerHighIcon } from '@phosphor-icons/react';
+import { SpeakerHighIcon, SpeakerLowIcon, SpeakerXIcon } from '@phosphor-icons/react';
 import { defineTransient } from '../../define';
 import { COMPACT_HEIGHT } from '../../metrics';
 import type { ActivityViewProps } from '../../types';
-
-/* PLACEHOLDER coalescing alert: showing it again while visible updates the level in place. */
+import { LevelView, Swap } from '../../ui/kit';
 
 interface VolumeData {
   /** 0 to 1. */
@@ -11,23 +10,34 @@ interface VolumeData {
 }
 
 function View({ data }: ActivityViewProps<VolumeData>) {
+  const state = data.level <= 0.01 ? 'mute' : data.level < 0.5 ? 'low' : 'high';
+  const Glyph = state === 'mute' ? SpeakerXIcon : state === 'low' ? SpeakerLowIcon : SpeakerHighIcon;
   return (
-    <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '0 14px 0 10px' }}>
-      <SpeakerHighIcon size={18} weight="fill" />
-      <div style={{ flex: 1, height: 6, borderRadius: 3, background: 'var(--island-fill-2)', overflow: 'hidden' }}>
-        <div style={{ width: `${Math.round(data.level * 100)}%`, height: '100%', borderRadius: 3, background: 'var(--island-fg)' }} />
-      </div>
-    </div>
+    <LevelView
+      level={data.level}
+      icon={
+        <Swap id={state} dy={0}>
+          <Glyph size={18} weight="fill" />
+        </Swap>
+      }
+    />
   );
 }
 
 export default defineTransient<VolumeData>({
   kind: 'volume',
   title: 'Volume',
-  description: 'Level indicator that updates in place.',
+  description: 'Level that updates in place: showing it again moves the bar.',
   icon: SpeakerHighIcon,
   defaultData: { level: 0.6 },
-  view: { size: { width: 220, height: COMPACT_HEIGHT }, Component: View },
+  view: { size: { width: 228, height: COMPACT_HEIGHT }, Component: View },
   duration: 1600,
-  demo: { controls: [{ type: 'range', key: 'level', label: 'Level', min: 0, max: 1, step: 0.05 }] },
+  demo: {
+    presets: [
+      { label: '30%', data: { level: 0.3 } },
+      { label: '80%', data: { level: 0.8 } },
+      { label: 'Mute', data: { level: 0 } },
+    ],
+    controls: [{ type: 'range', key: 'level', label: 'Level', min: 0, max: 1, step: 0.05 }],
+  },
 });
