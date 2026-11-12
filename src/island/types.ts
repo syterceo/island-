@@ -84,6 +84,8 @@ interface BaseDefinition<TData> {
   description?: string;
   icon: Icon;
   defaultData: TData | (() => TData);
+  /** Colour the island takes on while this activity is its main content: edge light and glow. */
+  tint?: string | ((data: TData) => string);
   /**
    * Headless logic mounted exactly once while the instance exists, whichever view is visible.
    * Use it for clocks, simulated progress and auto ending.
@@ -152,13 +154,17 @@ export interface IslandSettings {
   accent: string;
   /** Size multiplier of the whole island. */
   scale: number;
-  /** Accent coloured halo while an activity is on screen. */
+  /** Corner roundness, 0 (tight, 6 px) to 1 (full pill). */
+  roundness: number;
+  /** A line of light in the activity colour along the bottom edge. */
+  edgeLight: boolean;
+  /** Halo in the activity colour while something is on screen. */
   glow: boolean;
   waveStyle: WaveStyle;
   /** How dictated text appears. */
   textReveal: TextReveal;
 }
 
-export type Surface = 'black' | 'graphite' | 'glass' | 'light';
+export type Surface = 'mica' | 'black' | 'graphite' | 'glass' | 'light';
 export type WaveStyle = 'bars' | 'dots' | 'line';
 export type TextReveal = 'letters' | 'words' | 'smooth';
