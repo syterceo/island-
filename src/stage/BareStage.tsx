@@ -8,11 +8,11 @@ const BACKDROPS: Record<string, string> = {
 
 /** The island alone on a flat backdrop. `?view=stage&bg=light|dark|white`. */
 export function BareStage() {
-  const bg = new URLSearchParams(window.location.search).get('bg') ?? 'light';
+  const bg = new URLSearchParams(window.location.search).get('bg') ?? 'dark';
   return (
     <div
       data-island-stage
-      style={{ position: 'relative', width: '100%', height: '100%', background: BACKDROPS[bg] ?? BACKDROPS.light }}
+      style={{ position: 'relative', width: '100%', height: '100%', background: BACKDROPS[bg] ?? BACKDROPS.dark }}
     >
       <Island />
     </div>

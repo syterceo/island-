@@ -3,39 +3,105 @@
   top: 0;
   left: 50%;
   z-index: 10;
-  display: flex;
-  justify-content: center;
-  align-items: flex-start;
   width: 0;
   height: 0;
   color: var(--island-fg);
   font-family: var(--font-sans);
   user-select: none;
+  transform-origin: 0 0;
 }
 
-.shell {
-  position: relative;
-  flex: none;
-  overflow: hidden;
-  background: var(--island-bg);
+.root[data-surface='graphite'] {
+  --island-bg: #2c2c31;
+}
+
+.root[data-surface='glass'] {
+  --island-bg: rgb(24 24 28 / 0.46);
+  --island-outline: rgb(255 255 255 / 0.2);
+}
+
+.root[data-surface='light'] {
+  --island-bg: #f5f5f7;
+  --island-fg: #0b0b0c;
+  --island-fg-2: rgb(0 0 0 / 0.6);
+  --island-fg-3: rgb(0 0 0 / 0.42);
+  --island-fg-4: rgb(0 0 0 / 0.26);
+  --island-fill-1: rgb(0 0 0 / 0.05);
+  --island-fill-2: rgb(0 0 0 / 0.09);
+  --island-fill-3: rgb(0 0 0 / 0.15);
+  --island-hairline: rgb(0 0 0 / 0.1);
+  --island-outline: rgb(0 0 0 / 0.1);
+}
+
+.canvas {
+  position: absolute;
+  pointer-events: none;
+}
+
+.paint {
+  position: absolute;
+  inset: 0;
+  overflow: visible;
+}
+
+.root[data-shadow='true'] .paint {
+  filter: drop-shadow(0 12px 26px rgb(0 0 0 / 0.34)) drop-shadow(0 2px 5px rgb(0 0 0 / 0.2));
+}
+
+.root[data-glow='true'] .paint {
+  filter: drop-shadow(0 0 20px color-mix(in srgb, var(--island-accent) 42%, transparent));
+}
+
+.root[data-shadow='true'][data-glow='true'] .paint {
+  filter: drop-shadow(0 12px 26px rgb(0 0 0 / 0.34))
+    drop-shadow(0 0 20px color-mix(in srgb, var(--island-accent) 42%, transparent));
+}
+
+.fill {
+  fill: var(--island-bg);
+  transition: fill 0.3s ease;
+}
+
+/* Drawn under the fill at double width, so only the outer pixel shows and overlaps stay hidden. */
+.outline {
+  fill: none;
+  stroke: var(--island-outline, rgb(255 255 255 / 0.11));
+  stroke-width: 2;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.root[data-outline='true'] .outline {
+  opacity: 1;
+}
+
+.backdrop {
+  position: absolute;
+  backdrop-filter: blur(22px) saturate(1.7);
+}
+
+.clip {
+  position: absolute;
+  inset: 0;
+  pointer-events: auto;
   cursor: pointer;
 }
 
+.root[data-mode='expanded'] .clip {
+  cursor: default;
+}
+
+/* A permanent layer keeps text antialiasing identical during and after a swap. */
 .view {
   position: absolute;
-  top: 0;
-  left: 50%;
+  transform-origin: 50% 0;
+  will-change: opacity;
 }
 
 .bubble {
   position: absolute;
-  top: 0;
-  left: 0;
   width: 36px;
   height: 36px;
-  overflow: hidden;
-  border-radius: 18px;
-  background: var(--island-bg);
   cursor: pointer;
 }
 
