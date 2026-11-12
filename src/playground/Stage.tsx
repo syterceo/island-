@@ -1,5 +1,5 @@
-import { APPS, Island, T, useIslandStore } from '@/island';
-import { PlayIcon, WindowsLogoIcon } from '@phosphor-icons/react';
+import { AppTile, BRAND, Island, T, useIslandStore } from '@/island';
+import { PlayIcon } from '@phosphor-icons/react';
 import { motion } from 'motion/react';
 import { useEffect, useRef, useState } from 'react';
 import css from './playground.module.css';
@@ -109,11 +109,12 @@ function Taskbar() {
   return (
     <div className={css.taskbar}>
       <span className={css.taskbarApps}>
-        <WindowsLogoIcon size={17} weight="fill" color="#4cc2ff" />
-        {TASKBAR_APPS.map((id) => {
-          const { icon: AppIcon, color } = APPS[id];
-          return <AppIcon key={id} size={17} weight="fill" color={color} />;
-        })}
+        <svg width={17} height={17} viewBox="0 0 24 24" aria-hidden>
+          <path d={BRAND.windows} fill="#4cc2ff" />
+        </svg>
+        {TASKBAR_APPS.map((id) => (
+          <AppTile key={id} app={id} size={20} />
+        ))}
       </span>
       <span className={css.taskbarClock}>
         <span>{now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })}</span>

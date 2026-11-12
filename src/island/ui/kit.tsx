@@ -11,13 +11,13 @@ import css from './ui.module.css';
 export const cx = (...parts: (string | false | null | undefined)[]) => parts.filter(Boolean).join(' ');
 
 const riseVariants = {
-  [VIEW_STATE.initial]: () => ({ opacity: 0, y: fx.offset(10) }),
+  [VIEW_STATE.initial]: () => ({ opacity: 0, y: fx.offset(5) }),
   [VIEW_STATE.enter]: (index: number = 0) => ({
     opacity: 1,
     y: 0,
     // A tween lands exactly on its target, so the last frame of the entrance is the resting frame.
-    // Short enough that the last item arrives together with the shape.
-    transition: tween(0.34, { delay: 0.04 + index * 0.03 }),
+    // A short rise and a slight stagger: enough to read as arriving, not a show of its own.
+    transition: tween(0.28, { delay: 0.04 + Math.min(index, 3) * 0.02 }),
   }),
 };
 
@@ -40,7 +40,7 @@ interface SwapProps {
   truncate?: boolean;
   /** Which edge stays put while the width changes. */
   align?: 'start' | 'center' | 'end';
-  /** Soft focus while swapping. Off for small things that change often, like digits. */
+  /** Soft focus while swapping. Off by default: small swaps only fade and slide. */
   blur?: boolean;
   /** Glide to the width of the new content. Off for contents of one fixed width. */
   fit?: boolean;
@@ -59,7 +59,7 @@ export function Swap({
   truncate,
   align = 'start',
   fit = true,
-  blur = true,
+  blur = false,
 }: SwapProps) {
   const soft = (px: number) => (blur ? fx.blur(px) : undefined);
   const box = useRef<HTMLSpanElement>(null);
@@ -103,14 +103,29 @@ export function Swap({
   );
 }
 
-/** Tabular number whose changing digits roll individually. */
-export function Digits({ value, className, style }: { value: string; className?: string; style?: CSSProperties }) {
+interface DigitsProps {
+  value: string;
+  className?: string;
+  style?: CSSProperties;
+  /** Roll each digit as it changes. For rare changes like a score; a clock just updates. */
+  roll?: boolean;
+}
+
+/** Tabular number. Every digit has the same width, so a changing value never shifts. */
+export function Digits({ value, className, style, roll = false }: DigitsProps) {
+  if (!roll) {
+    return (
+      <span className={cx(css.digits, className)} style={style} aria-label={value}>
+        {value}
+      </span>
+    );
+  }
   const chars = value.split('');
   return (
     <span className={cx(css.digits, className)} style={style} aria-label={value}>
       {chars.map((char, index) => (
-        // Keyed from the right, so the seconds keep their slot when a digit appears on the left.
-        <Swap key={chars.length - index} id={char} dy={5} fit={false} blur={false}>
+        // Keyed from the right, so the units keep their slot when a digit appears on the left.
+        <Swap key={chars.length - index} id={char} dy={5} fit={false}>
           {char}
         </Swap>
       ))}
@@ -123,15 +138,24 @@ export function LiveDot({ color = 'var(--island-negative)', size = 10 }: { color
   return <span className={css.live} style={{ width: size, height: size, color }} />;
 }
 
-/** Rounded square app icon. */
+/** App icon: the real logo of the app on its tile. */
 export function AppTile({ app, size = 22 }: { app: string; size?: number }) {
-  const { color, ink, icon: AppIcon } = appOf(app);
+  const { background, round, scale, glyph } = appOf(app);
+  const inner = size * scale;
   return (
     <span
       className={css.appTile}
-      style={{ width: size, height: size, borderRadius: size * 0.3, background: color, color: ink }}
+      style={{ width: size, height: size, borderRadius: round ? '50%' : size * 0.28, background }}
     >
-      <AppIcon size={Math.round(size * 0.66)} weight="fill" />
+      {'paths' in glyph ? (
+        <svg width={inner} height={inner} viewBox="0 0 24 24" aria-hidden>
+          {glyph.paths.map((part) => (
+            <path key={part.fill} d={part.d} fill={part.fill} />
+          ))}
+        </svg>
+      ) : (
+        <glyph.icon size={inner} weight="fill" color={glyph.fill} />
+      )}
     </span>
   );
 }

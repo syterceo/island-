@@ -44,9 +44,9 @@ function Crest({ team, size = 34 }: { team: Team; size?: number }) {
 function Score({ data, size }: { data: MatchData; size: number }) {
   return (
     <span className={cx(ui.row, ui.num)} style={{ gap: size * 0.22, fontSize: size, fontWeight: 700, lineHeight: 1 }}>
-      <Digits value={String(data.home.score)} />
+      <Digits roll value={String(data.home.score)} />
       <span style={{ color: 'var(--island-fg-3)' }}>:</span>
-      <Digits value={String(data.away.score)} />
+      <Digits roll value={String(data.away.score)} />
     </span>
   );
 }

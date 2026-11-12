@@ -899,15 +899,6 @@
   letter-spacing: 0.02em;
 }
 
-/* Stacked banners behind the front notification. */
-.stackEdge {
-  position: absolute;
-  right: 0;
-  left: 0;
-  height: 9px;
-  border-top: 1px solid var(--island-hairline);
-  background: var(--island-fill-1);
-}
 
 .answer {
   flex: 1;
