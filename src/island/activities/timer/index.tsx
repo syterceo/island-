@@ -27,6 +27,12 @@ function fraction(data: TimerData, now: number): number {
   return data.durationMs > 0 ? remainingMs(data, now) / data.durationMs : 0;
 }
 
+/** The ring aims at where it will be at the next tick and takes exactly that long to get there. */
+function sweep(data: TimerData, now: number) {
+  const running = data.pausedMs === null;
+  return { value: fraction(data, running ? now + 1000 : now), glide: running ? 1 : undefined };
+}
+
 function togglePause(api: Pick<ActivityApi<TimerData>, 'update'>) {
   api.update((data) =>
     data.pausedMs === null
@@ -36,26 +42,26 @@ function togglePause(api: Pick<ActivityApi<TimerData>, 'update'>) {
 }
 
 function Compact({ data }: ActivityViewProps<TimerData>) {
-  const now = useNow(250, data.pausedMs === null);
+  const now = useNow(1000, data.pausedMs === null, data.endsAt);
   return (
     <div className={ui.compact} style={{ color: ORANGE }}>
-      <ProgressRing value={fraction(data, now)} color={ORANGE} />
+      <ProgressRing {...sweep(data, now)} color={ORANGE} />
       <Digits value={formatClock(remainingMs(data, now), 'ceil')} />
     </div>
   );
 }
 
 function Minimal({ data }: ActivityViewProps<TimerData>) {
-  const now = useNow(500, data.pausedMs === null);
+  const now = useNow(1000, data.pausedMs === null, data.endsAt);
   return (
     <div className={ui.center}>
-      <ProgressRing value={fraction(data, now)} color={ORANGE} />
+      <ProgressRing {...sweep(data, now)} color={ORANGE} />
     </div>
   );
 }
 
 function Expanded({ data, update, dismiss }: ActivityViewProps<TimerData>) {
-  const now = useNow(250, data.pausedMs === null);
+  const now = useNow(1000, data.pausedMs === null, data.endsAt);
   const paused = data.pausedMs !== null;
   return (
     <div className={ui.expanded}>
@@ -85,7 +91,7 @@ function Expanded({ data, update, dismiss }: ActivityViewProps<TimerData>) {
 }
 
 function Controller({ data, dismiss }: ActivityApi<TimerData>) {
-  const now = useNow(250, data.pausedMs === null);
+  const now = useNow(1000, data.pausedMs === null, data.endsAt);
   const finished = remainingMs(data, now) === 0;
   useEffect(() => {
     if (!finished) return;

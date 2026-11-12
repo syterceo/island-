@@ -111,15 +111,24 @@ owns the shape (size, radius, attachment, bubble), the crossfade between views, 
 hovered) and the effects (`bump`, `shake`). It renders `<IslandControllers />` once.
 
 The shape is one SVG path on a fixed canvas (`shell/shape.ts` builds it, with smoothed corners
-and the concave fillets of the notch), and the same path clips the content. Springs drive plain
+and the concave fillets of the notch), and a rounded box of the same size clips the content. Springs drive plain
 numbers (width, height, radius, offset, bubble position and scale) and the path is rebuilt from
 them every frame. Views never take part in layout while the shape moves: each sits at its final
 size at a fixed position, so nothing reflows or snaps when an animation ends. Motion elements
 are bound to derived copies of the geometry values, never to the values themselves, because an
 unmounting motion element stops the values it is bound to.
 
-The glass surface blurs what is behind it with a `backdrop-filter` element sized to the shape.
-That element can only be clipped by a border radius, so glass uses circular corners.
+Content is clipped by a rounded box, not by the path: the compositor clips rounded boxes directly,
+while a path clip is redrawn as a mask on every frame. The shadow is a box shadow under the
+silhouette for the same reason. The glass surface puts a `backdrop-filter` on that clip box,
+which has circular corners, so glass uses no corner smoothing.
+
+Steadiness rules, each of which fixed a visible fault: only the edges of the shape (width and
+height) may overshoot, everything that carries content is critically damped; a view is never
+scaled, it fades while its parts rise; anything that moves has its own layer (`will-change`), or
+its text is redrawn at every fractional position and trembles; the shape is drawn in the same
+frame as the values change (`frame.render(draw, false, true)`); the island origin is snapped to a
+device pixel; clocks tick on boundaries of their own start or end time (`useNow` anchor).
 
 Files dragged over the window open the upload drop target (`hooks/useFileDrop.ts`).
 

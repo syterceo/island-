@@ -44,6 +44,12 @@ function advance(api: Pick<ActivityApi<FocusData>, 'update' | 'dismiss' | 'data'
   emitEffect('bump');
 }
 
+/** The ring aims at where it will be at the next tick and takes exactly that long to get there. */
+function sweep(data: FocusData, now: number) {
+  const running = data.pausedMs === null;
+  return { value: left(data, running ? now + 1000 : now) / length(data), glide: running ? 1 : undefined };
+}
+
 function togglePause(update: Update) {
   update((data) =>
     data.pausedMs === null
@@ -53,10 +59,10 @@ function togglePause(update: Update) {
 }
 
 function Compact({ data }: ActivityViewProps<FocusData>) {
-  const now = useNow(250, data.pausedMs === null);
+  const now = useNow(1000, data.pausedMs === null, data.endsAt);
   return (
     <div className={ui.compact} style={{ gap: 8, padding: '0 13px 0 9px' }}>
-      <ProgressRing value={left(data, now) / length(data)} color="var(--island-tint)" />
+      <ProgressRing {...sweep(data, now)} color="var(--island-tint)" />
       <Swap id={data.phase} className={ui.caption} style={{ color: 'var(--island-tint)' }}>
         <T>{LABEL[data.phase]}</T>
       </Swap>
@@ -67,16 +73,16 @@ function Compact({ data }: ActivityViewProps<FocusData>) {
 }
 
 function Minimal({ data }: ActivityViewProps<FocusData>) {
-  const now = useNow(500, data.pausedMs === null);
+  const now = useNow(1000, data.pausedMs === null, data.endsAt);
   return (
     <div className={ui.center}>
-      <ProgressRing value={left(data, now) / length(data)} color={COLOR[data.phase]} />
+      <ProgressRing {...sweep(data, now)} color={COLOR[data.phase]} />
     </div>
   );
 }
 
 function Expanded({ data, update, dismiss }: ActivityViewProps<FocusData>) {
-  const now = useNow(250, data.pausedMs === null);
+  const now = useNow(1000, data.pausedMs === null, data.endsAt);
   const paused = data.pausedMs !== null;
   return (
     <div className={ui.expanded} style={{ gap: 8, padding: '0 16px 0 22px' }}>
@@ -116,7 +122,7 @@ function Expanded({ data, update, dismiss }: ActivityViewProps<FocusData>) {
 }
 
 function Controller({ data, update, dismiss }: ActivityApi<FocusData>) {
-  const now = useNow(250, data.pausedMs === null);
+  const now = useNow(1000, data.pausedMs === null, data.endsAt);
   const finished = left(data, now) === 0;
   useEffect(() => {
     if (finished) advance({ data, update, dismiss });
