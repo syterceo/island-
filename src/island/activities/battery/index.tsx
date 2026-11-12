@@ -1,6 +1,7 @@
 import { BatteryChargingIcon, LightningIcon } from '@phosphor-icons/react';
 import { motion } from 'motion/react';
 import { defineTransient } from '../../define';
+import { T } from '../../i18n';
 import { COMPACT_HEIGHT } from '../../metrics';
 import { spring } from '../../motion/springs';
 import type { ActivityViewProps } from '../../types';
@@ -19,7 +20,7 @@ function View({ data }: ActivityViewProps<BatteryData>) {
     <div className={ui.compact} style={{ padding: '0 14px 0 13px' }}>
       <span className={ui.label} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
         {data.charging && <LightningIcon size={14} weight="fill" color={color} />}
-        {data.charging ? 'Charging' : low ? 'Low battery' : 'Battery'}
+        <T>{data.charging ? 'Charging' : low ? 'Low battery' : 'Battery'}</T>
       </span>
       <span style={{ display: 'flex', alignItems: 'center', gap: 7, color }}>
         <span className={ui.label} style={{ fontVariantNumeric: 'tabular-nums' }}>

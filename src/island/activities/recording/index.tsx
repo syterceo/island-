@@ -1,5 +1,6 @@
 import { RecordIcon, StopIcon } from '@phosphor-icons/react';
 import { defineLiveActivity } from '../../define';
+import { T } from '../../i18n';
 import { useNow } from '../../hooks/useNow';
 import { COMPACT_HEIGHT } from '../../metrics';
 import { useIslandStore } from '../../store';
@@ -46,7 +47,7 @@ function Expanded({ data, dismiss }: ActivityViewProps<RecordingData>) {
         <span className={ui.row} style={{ gap: 9 }}>
           <LiveDot size={8} />
           <span className={ui.caption} style={{ color: RED }}>
-            Recording screen
+            <T>Recording screen</T>
           </span>
         </span>
         <Digits className={cx(ui.big)} style={{ fontSize: 28 }} value={formatClock(now - data.startedAt)} />
