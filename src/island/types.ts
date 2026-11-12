@@ -147,4 +147,18 @@ export interface IslandSettings {
   outline: boolean;
   shadow: boolean;
   reducedMotion: 'system' | 'always' | 'never';
+  surface: Surface;
+  /** CSS colour of the accent, or `fg` to follow the foreground of the surface. */
+  accent: string;
+  /** Size multiplier of the whole island. */
+  scale: number;
+  /** Accent coloured halo while an activity is on screen. */
+  glow: boolean;
+  waveStyle: WaveStyle;
+  /** How dictated text appears. */
+  textReveal: TextReveal;
 }
+
+export type Surface = 'black' | 'graphite' | 'glass' | 'light';
+export type WaveStyle = 'bars' | 'dots' | 'line';
+export type TextReveal = 'letters' | 'words' | 'smooth';
