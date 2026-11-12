@@ -86,6 +86,8 @@ interface BaseDefinition<TData> {
   defaultData: TData | (() => TData);
   /** Colour the island takes on while this activity is its main content: edge light and glow. */
   tint?: string | ((data: TData) => string);
+  /** A horizontal swipe across the island while this activity is its main content. 1 is forwards. */
+  onSwipe?: (api: ActivityApi<TData>, direction: 1 | -1) => void;
   /**
    * Headless logic mounted exactly once while the instance exists, whichever view is visible.
    * Use it for clocks, simulated progress and auto ending.
@@ -117,6 +119,10 @@ export interface TransientDefinition<TData = any> extends BaseDefinition<TData> 
   duration?: number | ((data: TData) => number);
   /** Showing the same kind while visible updates it in place and restarts the timer. Default true. */
   coalesce?: boolean;
+  /** Combines the visible alert with a new one of the same kind, instead of overwriting its data. */
+  merge?: (current: TData, incoming: Partial<TData>) => Partial<TData>;
+  /** Suppressed while Do not disturb is on. */
+  interruptive?: boolean;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -163,8 +169,12 @@ export interface IslandSettings {
   waveStyle: WaveStyle;
   /** How dictated text appears. */
   textReveal: TextReveal;
+  /** Colour of the `custom` surface. */
+  surfaceColor: string;
+  language: Language;
 }
 
-export type Surface = 'mica' | 'black' | 'graphite' | 'glass' | 'light';
+export type Language = 'en' | 'ru';
+export type Surface = 'custom' | 'mica' | 'black' | 'graphite' | 'glass' | 'light';
 export type WaveStyle = 'bars' | 'dots' | 'line';
 export type TextReveal = 'letters' | 'words' | 'smooth';

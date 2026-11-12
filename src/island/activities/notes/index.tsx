@@ -2,6 +2,7 @@ import { NotePencilIcon, PlusIcon, XIcon } from '@phosphor-icons/react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useState } from 'react';
 import { defineLiveActivity } from '../../define';
+import { T, translate, useLanguage } from '../../i18n';
 import { emitEffect } from '../../effects';
 import { COMPACT_HEIGHT } from '../../metrics';
 import { spring, tween } from '../../motion/springs';
@@ -32,7 +33,7 @@ function Compact({ data }: ActivityViewProps<NotesData>) {
     <div className={ui.compact} style={{ justifyContent: 'flex-start', padding: '0 14px 0 10px' }}>
       <NotePencilIcon size={18} weight="fill" color={YELLOW} style={{ flex: 'none' }} />
       <Swap id={latest?.id ?? 'empty'} className={`${ui.label} ${ui.grow}`} truncate>
-        {latest?.text ?? 'No notes yet'}
+        <T>{latest?.text ?? 'No notes yet'}</T>
       </Swap>
     </div>
   );
@@ -48,6 +49,7 @@ function Minimal() {
 
 function Expanded({ data, update }: ActivityViewProps<NotesData>) {
   const [draft, setDraft] = useState('');
+  const language = useLanguage();
   const submit = () => {
     addNote(update, draft);
     setDraft('');
@@ -56,7 +58,9 @@ function Expanded({ data, update }: ActivityViewProps<NotesData>) {
     <div className={ui.column} style={{ padding: '16px 18px 16px', gap: 10 }}>
       <Rise i={0} className={ui.row} style={{ gap: 8, padding: '0 4px' }}>
         <NotePencilIcon size={18} weight="fill" color={YELLOW} />
-        <span className={ui.title}>Notes</span>
+        <span className={ui.title}>
+          <T>Notes</T>
+        </span>
         <span className={ui.grow} />
         <Swap id={data.notes.length} className={ui.sub}>
           {data.notes.length}
@@ -73,7 +77,9 @@ function Expanded({ data, update }: ActivityViewProps<NotesData>) {
               exit={{ height: 0, opacity: 0, transition: tween(0.2) }}
             >
               <div className={ui.noteInner}>
-                <span>{note.text}</span>
+                <span>
+                  <T>{note.text}</T>
+                </span>
                 <IconButton
                   label="Delete note"
                   tone="ghost"
@@ -91,7 +97,7 @@ function Expanded({ data, update }: ActivityViewProps<NotesData>) {
         <input
           className={ui.input}
           value={draft}
-          placeholder="Write a note and press Enter"
+          placeholder={translate('Write a note and press Enter', language)}
           onChange={(event) => setDraft(event.target.value)}
           onKeyDown={(event) => {
             if (event.key === 'Enter') submit();

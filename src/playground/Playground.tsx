@@ -6,6 +6,7 @@ import {
   type DemoControl,
   emitEffect,
   type IslandSettings,
+  T,
   listDefinitions,
   useIslandStore,
 } from '@/island';
@@ -24,7 +25,8 @@ import { AppsPage } from './AppsPage';
 import { Field, Section, Segmented, Slider, Swatches, Toggle } from './controls';
 import { LOOKS } from './looks';
 import css from './playground.module.css';
-import { Stage, type StageBg } from './Stage';
+import { DEFAULT_STAGE, Stage, type StageBg, type StageState } from './Stage';
+import { ThemeSection } from './ThemeSection';
 
 const STORAGE_KEY = 'island.settings.v2';
 
@@ -42,6 +44,17 @@ useIslandStore.subscribe((state, previous) => {
     // Persistence is optional.
   }
 });
+
+const STAGE_KEY = 'island.stage.v1';
+
+function loadStage(): StageState {
+  try {
+    const saved = localStorage.getItem(STAGE_KEY);
+    return saved ? { ...DEFAULT_STAGE, ...JSON.parse(saved) } : DEFAULT_STAGE;
+  } catch {
+    return DEFAULT_STAGE;
+  }
+}
 
 const island = () => useIslandStore.getState();
 
@@ -74,14 +87,16 @@ function DemoControlRow({ control, instance }: { control: DemoControl<any>; inst
   if (control.type === 'action') {
     return (
       <button type="button" className={css.chip} onClick={() => control.run(apiFor(instance))}>
-        {control.label}
+        <T>{control.label}</T>
       </button>
     );
   }
   const value = instance.data[control.key];
   return (
     <label className={css.demoControl}>
-      <span>{control.label}</span>
+      <span>
+        <T>{control.label}</T>
+      </span>
       {control.type === 'toggle' && <Toggle value={Boolean(value)} onChange={set} />}
       {control.type === 'range' && (
         <Slider value={Number(value)} min={control.min} max={control.max} step={control.step} onChange={set} />
@@ -129,28 +144,32 @@ function ActivityCard({ definition }: { definition: ActivityDefinition }) {
           <DefinitionIcon size={18} weight="fill" />
         </span>
         <div className={css.cardText}>
-          <strong>{definition.title}</strong>
-          <span>{definition.description}</span>
+          <strong>
+            <T>{definition.title}</T>
+          </strong>
+          <span>
+            <T>{definition.description ?? ''}</T>
+          </span>
         </div>
       </div>
       <div className={css.cardActions}>
         {presets.length === 0 && (
           <button type="button" className={css.chip} data-primary onClick={() => run()}>
-            {live ? 'Start' : 'Show'}
+            <T>{live ? 'Start' : 'Show'}</T>
           </button>
         )}
         {presets.map((preset) => (
           <button key={preset.label} type="button" className={css.chip} data-primary onClick={() => run(preset.data)}>
-            {preset.label}
+            <T>{preset.label}</T>
           </button>
         ))}
         {live && running && (
           <>
             <button type="button" className={css.chip} onClick={() => island().toggle(running.id)}>
-              Open / close
+              <T>Open / close</T>
             </button>
             <button type="button" className={css.chip} onClick={() => island().end(running.id)}>
-              End
+              <T>End</T>
             </button>
           </>
         )}
@@ -201,16 +220,16 @@ function ActivitiesPage() {
       <Section title="Gestures">
         <div className={css.cardActions}>
           <button type="button" className={css.chip} onClick={() => emitEffect('bump')}>
-            Bump
+            <T>Bump</T>
           </button>
           <button type="button" className={css.chip} onClick={() => emitEffect('shake')}>
-            Shake
+            <T>Shake</T>
           </button>
           <button type="button" className={css.chip} onClick={() => island().toggle()}>
-            Expand / collapse
+            <T>Expand / collapse</T>
           </button>
           <button type="button" className={css.chip} onClick={() => island().reset()}>
-            End everything
+            <T>End everything</T>
           </button>
         </div>
       </Section>
@@ -224,6 +243,7 @@ interface Settings {
 }
 
 const SURFACES = [
+  { label: 'Custom', value: 'custom', color: 'conic-gradient(#ff7eb3, #7afcff, #feff9c, #6a5cff, #ff7eb3)' },
   { label: 'Mica', value: 'mica', color: '#17171a' },
   { label: 'Black', value: 'black', color: '#000' },
   { label: 'Graphite', value: 'graphite', color: '#2c2c31' },
@@ -244,7 +264,13 @@ const ACCENTS = [
 
 const percent = (value: number) => `${Math.round(value * 100)}%`;
 
-function LookPage({ settings, set, onStage }: Settings & { onStage: (bg: StageBg) => void }) {
+interface LookProps extends Settings {
+  stage: StageState;
+  onStageState: (stage: StageState) => void;
+  onStage: (bg: StageBg) => void;
+}
+
+function LookPage({ settings, set, stage, onStageState, onStage }: LookProps) {
   return (
     <>
       <Section title="Ready styles">
@@ -272,11 +298,12 @@ function LookPage({ settings, set, onStage }: Settings & { onStage: (bg: StageBg
                 <i />
                 <i />
               </span>
-              {look.name}
+              <T>{look.name}</T>
             </button>
           ))}
         </div>
       </Section>
+      <ThemeSection settings={settings} set={set} stage={stage} onStage={onStageState} />
       <Section title="Look">
         <Field label="Surface" value={SURFACES.find((item) => item.value === settings.surface)?.label} stacked>
           <Swatches
@@ -374,8 +401,12 @@ function MotionPage({ settings, set }: Settings) {
                 island().toggle();
               }}
             >
-              <strong>{feel.name}</strong>
-              <span>{feel.hint}</span>
+              <strong>
+                <T>{feel.name}</T>
+              </strong>
+              <span>
+                <T>{feel.hint}</T>
+              </span>
             </button>
           ))}
         </div>
@@ -446,7 +477,7 @@ function BehaviorPage({ settings, set }: Settings) {
       <Section title="Settings">
         <Field label="Restore defaults" hint="Settings are saved in this browser">
           <button type="button" className={css.chip} onClick={() => set(DEFAULT_SETTINGS)}>
-            <ArrowCounterClockwiseIcon size={13} weight="bold" /> Reset
+            <ArrowCounterClockwiseIcon size={13} weight="bold" /> <T>Reset</T>
           </button>
         </Field>
       </Section>
@@ -456,7 +487,16 @@ function BehaviorPage({ settings, set }: Settings) {
 
 export function Playground() {
   const [page, setPage] = useState<PageId>('apps');
-  const [bg, setBg] = useState<StageBg>('desktop');
+  const [stage, setStageState] = useState<StageState>(loadStage);
+  const setStage = (next: StageState) => {
+    setStageState(next);
+    try {
+      localStorage.setItem(STAGE_KEY, JSON.stringify(next));
+    } catch {
+      // A large wallpaper may not fit; it then lasts until the page is reloaded.
+    }
+  };
+  const setBg = (bg: StageBg) => setStage({ ...stage, bg });
   const settings = useIslandStore((state) => state.settings);
   const set = useIslandStore((state) => state.setSettings);
 
@@ -465,7 +505,7 @@ export function Playground() {
       <nav className={css.sidebar}>
         <div className={css.brand}>
           <span />
-          Island
+          <T>Island</T>
         </div>
         {PAGES.map(({ id, label, icon: PageIcon }) => (
           <button key={id} type="button" data-active={page === id} onClick={() => setPage(id)}>
@@ -477,18 +517,31 @@ export function Playground() {
               />
             )}
             <PageIcon size={17} />
-            <span>{label}</span>
+            <span>
+              <T>{label}</T>
+            </span>
           </button>
         ))}
-        <footer>Motion playground</footer>
+        <footer>
+          <Segmented
+            value={settings.language}
+            options={[
+              { label: 'EN', value: 'en' },
+              { label: 'RU', value: 'ru' },
+            ]}
+            onChange={(language) => set({ language })}
+          />
+        </footer>
       </nav>
       <main className={css.main}>
-        <Stage bg={bg} onBg={setBg} />
+        <Stage stage={stage} onStage={setStage} />
         <div className={css.page}>
           <div key={page} className={css.pageInner}>
             {page === 'apps' && <AppsPage />}
             {page === 'activities' && <ActivitiesPage />}
-            {page === 'look' && <LookPage settings={settings} set={set} onStage={setBg} />}
+            {page === 'look' && (
+              <LookPage settings={settings} set={set} stage={stage} onStageState={setStage} onStage={setBg} />
+            )}
             {page === 'motion' && <MotionPage settings={settings} set={set} />}
             {page === 'behavior' && <BehaviorPage settings={settings} set={set} />}
           </div>

@@ -22,6 +22,8 @@ export const DEFAULT_SETTINGS: IslandSettings = {
   glow: false,
   waveStyle: 'bars',
   textReveal: 'words',
+  surfaceColor: '#1d2b4f',
+  language: typeof navigator !== 'undefined' && navigator.language?.toLowerCase().startsWith('ru') ? 'ru' : 'en',
 };
 
 /** A transient stays at least this long before a queued one may replace it. */
@@ -221,11 +223,13 @@ export const useIslandStore = create<IslandStore>()((set, get) => {
       const definition = getDefinition(kind);
       if (definition.type !== 'transient') return get().start(kind, data);
 
-      const { transient, queue } = get();
+      const { transient, queue, idle } = get();
+      if (definition.interruptive && idle.data.dnd) return '';
       const coalesce = definition.coalesce !== false;
 
       if (transient && transient.kind === kind && coalesce) {
-        set({ transient: patched(transient, data ?? {}) });
+        const incoming = data ?? {};
+        set({ transient: patched(transient, definition.merge?.(transient.data, incoming) ?? incoming) });
         armDismissTimer();
         return transient.id;
       }
@@ -289,7 +293,9 @@ export const useIslandStore = create<IslandStore>()((set, get) => {
     reset: () => {
       clearTimeout(dismissTimer);
       transientHeld = false;
-      set({ idle: createIdle(), live: [], transient: null, queue: [], expandedId: null });
+      // The idle data holds the quick settings of the hub, which are kept like settings.
+      const idle = Object.keys(get().idle.data).length > 0 ? get().idle : createIdle();
+      set({ idle, live: [], transient: null, queue: [], expandedId: null });
     },
   };
 });
