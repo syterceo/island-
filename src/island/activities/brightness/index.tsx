@@ -21,7 +21,7 @@ function View({ data }: ActivityViewProps<BrightnessData>) {
           style={{ display: 'grid', flex: 'none' }}
           initial={false}
           animate={{ rotate: data.level * 120, scale: 0.8 + data.level * 0.25 }}
-          transition={spring('snappy')}
+          transition={tween(0.3)}
         >
           <SunIcon size={18} weight="fill" color="var(--island-warning)" />
         </motion.span>

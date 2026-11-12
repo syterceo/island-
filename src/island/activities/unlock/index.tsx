@@ -25,7 +25,7 @@ function View() {
         )}
       </Swap>
       <Swap id={open ? 'open' : 'locked'} className={ui.label}>
-        {open ? 'Unlocked' : 'Checking'}
+        {open ? 'Welcome back' : 'Looking for you'}
       </Swap>
     </div>
   );
@@ -33,10 +33,10 @@ function View() {
 
 export default defineTransient<Record<string, never>>({
   kind: 'unlock',
-  title: 'Unlock',
-  description: 'A lock that opens with a small bump.',
+  title: 'Windows Hello',
+  description: 'Sign in confirmation: the lock opens with a small bump.',
   icon: LockOpenIcon,
   defaultData: {},
-  view: { size: { width: 138, height: COMPACT_HEIGHT }, Component: View },
+  view: { size: { width: 172, height: COMPACT_HEIGHT }, Component: View },
   duration: 2000,
 });

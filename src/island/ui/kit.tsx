@@ -1,5 +1,6 @@
-import { AnimatePresence, motion, type HTMLMotionProps } from 'motion/react';
-import type { CSSProperties, ReactNode } from 'react';
+import { animate, AnimatePresence, motion, type HTMLMotionProps } from 'motion/react';
+import { useLayoutEffect, useRef, type CSSProperties, type ReactNode } from 'react';
+import { appOf } from '../apps';
 import { fx, spring, tween } from '../motion/springs';
 import { VIEW_STATE } from '../motion/variants';
 import { useIslandStore } from '../store';
@@ -13,7 +14,8 @@ const riseVariants = {
   [VIEW_STATE.enter]: (index: number = 0) => ({
     opacity: 1,
     y: 0,
-    transition: spring('content', { delay: 0.07 + index * 0.04 }),
+    // A tween lands exactly on its target, so the last frame of the entrance is the resting frame.
+    transition: tween(0.42, { delay: 0.07 + index * 0.04 }),
   }),
 };
 
@@ -30,19 +32,51 @@ interface SwapProps {
   style?: CSSProperties;
   /** Vertical travel in px. */
   dy?: number;
+  /** Fill the available width and cut long text with an ellipsis. */
   truncate?: boolean;
+  /** Which edge stays put while the width changes. */
+  align?: 'start' | 'center' | 'end';
+  /** Glide to the width of the new content. Off for contents of one fixed width. */
+  fit?: boolean;
 }
 
-/** Crossfades between contents in one grid cell, so the swap never shifts its neighbours. */
-export function Swap({ id, children, className, style, dy = 6, truncate }: SwapProps) {
+/**
+ * Crossfades between contents in one grid cell. The cell glides to the width of the new content,
+ * so neither the content nor its neighbours jump when the old content is removed.
+ */
+export function Swap({ id, children, className, style, dy = 6, truncate, align = 'start', fit = true }: SwapProps) {
+  const box = useRef<HTMLSpanElement>(null);
+  const item = useRef<HTMLSpanElement>(null);
+  const measured = useRef<number | null>(null);
+  const fitted = fit && !truncate;
+
+  useLayoutEffect(() => {
+    const container = box.current;
+    const current = item.current;
+    if (!fitted || !container || !current) return;
+    const apply = () => {
+      // offsetWidth ignores the transforms of the running view swap.
+      const next = current.offsetWidth;
+      if (next === measured.current) return;
+      if (measured.current === null) container.style.width = `${next}px`;
+      else animate(container, { width: next }, tween(0.3));
+      measured.current = next;
+    };
+    apply();
+    const observer = new ResizeObserver(apply);
+    observer.observe(current);
+    return () => observer.disconnect();
+  }, [id, fitted]);
+
   return (
-    <span className={cx(css.swap, className)} style={style}>
+    <span ref={box} className={cx(css.swap, className)} data-fit={fitted} data-align={align} style={style}>
       <AnimatePresence initial={false}>
         <motion.span
           key={id}
+          ref={item}
           className={cx(css.swapItem, truncate && css.truncate)}
           initial={{ opacity: 0, y: fx.offset(dy), filter: fx.blur(4) }}
-          animate={{ opacity: 1, y: 0, filter: fx.blur(0), transition: spring('content') }}
+          animate={{ opacity: 1, y: 0, filter: fx.blur(0), transition: tween(0.3) }}
           exit={{ opacity: 0, y: fx.offset(-dy), filter: fx.blur(4), transition: tween(0.16) }}
         >
           {children}
@@ -59,10 +93,52 @@ export function Digits({ value, className, style }: { value: string; className?:
     <span className={cx(css.digits, className)} style={style} aria-label={value}>
       {chars.map((char, index) => (
         // Keyed from the right, so the seconds keep their slot when a digit appears on the left.
-        <Swap key={chars.length - index} id={char} dy={7}>
+        <Swap key={chars.length - index} id={char} dy={7} fit={false}>
           {char}
         </Swap>
       ))}
+    </span>
+  );
+}
+
+/** A steady dot with a halo that breathes. Nothing changes size, so it never looks unsettled. */
+export function LiveDot({ color = 'var(--island-negative)', size = 10 }: { color?: string; size?: number }) {
+  return <span className={css.live} style={{ width: size, height: size, color }} />;
+}
+
+/** Rounded square app icon. */
+export function AppTile({ app, size = 22 }: { app: string; size?: number }) {
+  const { color, ink, icon: AppIcon } = appOf(app);
+  return (
+    <span
+      className={css.appTile}
+      style={{ width: size, height: size, borderRadius: size * 0.3, background: color, color: ink }}
+    >
+      <AppIcon size={Math.round(size * 0.66)} weight="fill" />
+    </span>
+  );
+}
+
+const AVATAR_COLORS = ['#f47b67', '#5bb98c', '#e2a336', '#8e7cf0', '#3fa7d6', '#e06c9f'];
+
+interface AvatarProps {
+  name: string;
+  size?: number;
+  /** Shows the green voice ring. */
+  speaking?: boolean;
+  dimmed?: boolean;
+}
+
+export function Avatar({ name, size = 22, speaking = false, dimmed = false }: AvatarProps) {
+  const color = AVATAR_COLORS[(name.charCodeAt(0) + name.length) % AVATAR_COLORS.length];
+  return (
+    <span
+      className={css.avatar}
+      data-speaking={speaking}
+      data-dimmed={dimmed}
+      style={{ width: size, height: size, fontSize: size * 0.44, background: color }}
+    >
+      {name[0]}
     </span>
   );
 }
@@ -103,6 +179,18 @@ export function ProgressRing({ value, size = 20, stroke = 3, color = 'var(--isla
   );
 }
 
+/** Horizontal progress or level bar. */
+export function Bar({ value, color, height = 4 }: { value: number; color?: string; height?: number }) {
+  return (
+    <span className={css.bar} style={{ height, borderRadius: height / 2 }}>
+      <span
+        className={css.barFill}
+        style={{ transform: `scaleX(${Math.min(1, Math.max(0, value))})`, background: color, borderRadius: height / 2 }}
+      />
+    </span>
+  );
+}
+
 const WAVE_SECONDS = [0.52, 0.38, 0.61, 0.44, 0.57, 0.36, 0.49, 0.66];
 
 interface WaveProps {
@@ -131,7 +219,7 @@ export function Wave({ bars = 5, active = true, color, height = 16, variant }: W
   );
 }
 
-type Tone = 'neutral' | 'positive' | 'negative' | 'orange' | 'accent' | 'ghost';
+type Tone = 'neutral' | 'positive' | 'negative' | 'orange' | 'accent' | 'ghost' | 'active';
 
 interface IconButtonProps {
   label: string;
@@ -149,10 +237,9 @@ export function IconButton({ label, onClick, tone = 'neutral', size = 40, childr
       title={label}
       className={css.iconButton}
       data-tone={tone}
-      style={{ width: size, height: size }}
-      whileHover={{ scale: fx.scale(1.06) }}
-      whileTap={{ scale: fx.scale(0.9) }}
-      transition={spring('snappy')}
+      style={{ width: size, height: size, borderRadius: Math.round(size * 0.3) }}
+      whileTap={{ scale: fx.scale(0.92) }}
+      transition={spring('snappy', { bounce: 0 })}
       onClick={(event) => {
         event.stopPropagation();
         onClick?.();
@@ -176,7 +263,7 @@ export function DrawnMark({ kind = 'check', size = 18 }: { kind?: 'check' | 'cro
         fill={color}
         initial={{ scale: fx.scale(0.4), opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
-        transition={spring('bouncy', { visualDuration: 0.4 })}
+        transition={tween(0.3)}
       />
       <motion.path
         d={d}
@@ -204,7 +291,7 @@ export function LevelView({ level, icon }: { level: number; icon: ReactNode }) {
           className={css.trackFill}
           initial={false}
           animate={{ scaleX: Math.max(0.03, clamped) }}
-          transition={spring('snappy')}
+          transition={spring('snappy', { bounce: 0 })}
         />
       </span>
       <span className={css.levelNumber}>{Math.round(clamped * 100)}</span>

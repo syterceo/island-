@@ -51,7 +51,7 @@ function DropTarget() {
       <svg aria-hidden>
         <rect x="1" y="1" rx="19" style={{ width: 'calc(100% - 2px)', height: 'calc(100% - 2px)' }} />
       </svg>
-      <CloudArrowUpIcon size={30} weight="fill" className={ui.bob} />
+      <CloudArrowUpIcon size={30} weight="fill" />
       Drop files or click to choose
       <input
         type="file"
@@ -152,6 +152,7 @@ export default defineLiveActivity<UploadData>({
   title: 'File upload',
   description: 'Drag files onto the window: the island opens a drop target, then tracks progress.',
   icon: CloudArrowUpIcon,
+  tint: '#30d158',
   defaultData: { dropping: false, files: [] },
   compact: { size: { width: 104, height: COMPACT_HEIGHT }, Component: Compact },
   minimal: Minimal,

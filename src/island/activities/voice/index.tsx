@@ -7,7 +7,7 @@ import { COMPACT_HEIGHT } from '../../metrics';
 import { fx, scaled, spring, tween } from '../../motion/springs';
 import { useIslandStore } from '../../store';
 import type { ActivityApi, ActivityViewProps, TextReveal } from '../../types';
-import { cx, DrawnMark, Rise, Swap, ui, Wave } from '../../ui/kit';
+import { DrawnMark, LiveDot, Rise, Swap, ui, Wave } from '../../ui/kit';
 
 type Phase = 'listening' | 'transcribing' | 'done' | 'error';
 
@@ -42,7 +42,7 @@ function Indicator({ phase }: { phase: Phase }) {
   return (
     <Swap id={phase} dy={0}>
       <span style={{ display: 'grid', placeItems: 'center', width: 18, height: 18 }}>
-        {phase === 'listening' && <span className={cx(ui.dot, ui.pulse)} style={{ color: 'var(--island-accent)' }} />}
+        {phase === 'listening' && <LiveDot color="var(--island-accent)" />}
         {phase === 'transcribing' && <CircleNotchIcon size={18} weight="bold" className={ui.spin} />}
         {phase === 'done' && <DrawnMark />}
         {phase === 'error' && <WarningIcon size={18} weight="fill" color="var(--island-negative)" />}
