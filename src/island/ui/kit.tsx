@@ -1,6 +1,7 @@
 import { animate, AnimatePresence, motion, type HTMLMotionProps } from 'motion/react';
 import { useLayoutEffect, useRef, type CSSProperties, type ReactNode } from 'react';
 import { appOf } from '../apps';
+import { useT } from '../i18n';
 import { fx, spring, tween } from '../motion/springs';
 import { VIEW_STATE } from '../motion/variants';
 import { useIslandStore } from '../store';
@@ -230,11 +231,12 @@ interface IconButtonProps {
 }
 
 export function IconButton({ label, onClick, tone = 'neutral', size = 40, children }: IconButtonProps) {
+  const title = useT()(label);
   return (
     <motion.button
       type="button"
-      aria-label={label}
-      title={label}
+      aria-label={title}
+      title={title}
       className={css.iconButton}
       data-tone={tone}
       style={{ width: size, height: size, borderRadius: Math.round(size * 0.3) }}
@@ -246,6 +248,32 @@ export function IconButton({ label, onClick, tone = 'neutral', size = 40, childr
       }}
     >
       {children}
+    </motion.button>
+  );
+}
+
+interface TextButtonProps {
+  /** English label; it is translated. */
+  children: string;
+  onClick?: () => void;
+  tone?: Tone;
+}
+
+export function TextButton({ children, onClick, tone = 'neutral' }: TextButtonProps) {
+  const t = useT();
+  return (
+    <motion.button
+      type="button"
+      className={css.textButton}
+      data-tone={tone}
+      whileTap={{ scale: fx.scale(0.95) }}
+      transition={spring('snappy', { bounce: 0 })}
+      onClick={(event) => {
+        event.stopPropagation();
+        onClick?.();
+      }}
+    >
+      {t(children)}
     </motion.button>
   );
 }

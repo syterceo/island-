@@ -1,6 +1,7 @@
 import { ScissorsIcon } from '@phosphor-icons/react';
 import { APPS } from '../../apps';
 import { defineTransient } from '../../define';
+import { T } from '../../i18n';
 import type { ActivityViewProps } from '../../types';
 import { cx, ui } from '../../ui/kit';
 
@@ -14,8 +15,12 @@ function View({ data }: ActivityViewProps<ScreenshotData>) {
     <div className={ui.expanded} style={{ gap: 12, padding: '0 16px 0 10px' }}>
       <span className={ui.thumb} style={{ width: 64, height: 42 }} />
       <div className={cx(ui.stack, ui.grow)}>
-        <span className={ui.title}>{data.title}</span>
-        <span className={ui.sub}>{data.detail}</span>
+        <span className={ui.title}>
+          <T>{data.title}</T>
+        </span>
+        <span className={ui.sub}>
+          <T>{data.detail}</T>
+        </span>
       </div>
       <ScissorsIcon size={18} weight="fill" color="var(--island-fg-3)" />
     </div>

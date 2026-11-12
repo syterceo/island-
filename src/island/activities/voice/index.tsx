@@ -2,11 +2,12 @@ import { CircleNotchIcon, MicrophoneIcon, WarningIcon } from '@phosphor-icons/re
 import { motion } from 'motion/react';
 import { useEffect } from 'react';
 import { defineLiveActivity } from '../../define';
+import { T, useLanguage } from '../../i18n';
 import { emitEffect } from '../../effects';
 import { COMPACT_HEIGHT } from '../../metrics';
 import { fx, scaled, spring, tween } from '../../motion/springs';
 import { useIslandStore } from '../../store';
-import type { ActivityApi, ActivityViewProps, TextReveal } from '../../types';
+import type { ActivityApi, ActivityViewProps, Language, TextReveal } from '../../types';
 import { DrawnMark, LiveDot, Rise, Swap, ui, Wave } from '../../ui/kit';
 
 type Phase = 'listening' | 'transcribing' | 'done' | 'error';
@@ -19,10 +20,12 @@ interface VoiceData {
   auto: boolean;
 }
 
-const WORDS =
-  'Remind me to send the design review notes to the team before lunch tomorrow and book the small meeting room for three'.split(
-    ' ',
-  );
+const SPEECH = {
+  en: 'Remind me to send the design review notes to the team before lunch tomorrow and book the small meeting room for three',
+  ru: 'Напомни отправить команде заметки с дизайн-ревью завтра до обеда и забронируй маленькую переговорку на троих',
+};
+
+const wordsIn = (language: Language) => SPEECH[language].split(' ');
 
 const LABEL: Record<Phase, string> = {
   listening: 'Listening',
@@ -59,7 +62,9 @@ function Compact({ data }: ActivityViewProps<VoiceData>) {
         {data.phase === 'listening' ? (
           <Wave bars={8} height={16} />
         ) : (
-          <span className={data.phase === 'transcribing' ? ui.shimmer : undefined}>{LABEL[data.phase]}</span>
+          <span className={data.phase === 'transcribing' ? ui.shimmer : undefined}>
+            <T>{LABEL[data.phase]}</T>
+          </span>
         )}
       </Swap>
     </div>
@@ -104,19 +109,24 @@ function Word({ text, reveal }: { text: string; reveal: TextReveal }) {
 
 function Expanded({ data }: ActivityViewProps<VoiceData>) {
   const reveal = useIslandStore((state) => state.settings.textReveal);
+  const language = useLanguage();
   return (
     <div className={ui.column} style={{ padding: '16px 22px 16px', gap: 10 }}>
       <Rise i={0} className={ui.row} style={{ gap: 8, height: 22 }}>
         <Indicator phase={data.phase} />
         <Swap id={data.phase} className={ui.sub}>
-          <span className={data.phase === 'transcribing' ? ui.shimmer : undefined}>{LABEL[data.phase]}</span>
+          <span className={data.phase === 'transcribing' ? ui.shimmer : undefined}>
+            <T>{LABEL[data.phase]}</T>
+          </span>
         </Swap>
         <span className={ui.grow} />
         <Wave bars={14} height={20} active={data.phase === 'listening'} />
       </Rise>
       <Rise i={1} className={ui.transcript}>
-        {data.words === 0 && <span style={{ color: 'var(--island-fg-3)' }}>Start speaking…</span>}
-        {WORDS.slice(0, data.words).map((word, index) => (
+        {data.words === 0 && <span style={{ color: 'var(--island-fg-3)' }}>
+            <T>Start speaking…</T>
+          </span>}
+        {wordsIn(language).slice(0, data.words).map((word, index) => (
           <Word key={index} text={word} reveal={reveal} />
         ))}
       </Rise>
@@ -126,13 +136,14 @@ function Expanded({ data }: ActivityViewProps<VoiceData>) {
 
 function Controller({ data, update, dismiss }: ActivityApi<VoiceData>) {
   const { phase, words, auto } = data;
+  const total = wordsIn(useLanguage()).length;
 
   useEffect(() => {
     if (phase === 'error') emitEffect('shake');
   }, [phase]);
 
   useEffect(() => {
-    if (phase === 'listening' && words < WORDS.length) {
+    if (phase === 'listening' && words < total) {
       const timer = setTimeout(() => update({ words: words + 1 }), scaled(170 + (words % 4) * 70));
       return () => clearTimeout(timer);
     }
@@ -143,7 +154,7 @@ function Controller({ data, update, dismiss }: ActivityApi<VoiceData>) {
       else update({ phase: NEXT[phase] });
     }, scaled(waits[phase]));
     return () => clearTimeout(timer);
-  }, [phase, words, auto, update, dismiss]);
+  }, [phase, words, auto, total, update, dismiss]);
 
   return null;
 }
@@ -155,7 +166,7 @@ export default defineLiveActivity<VoiceData>({
   icon: MicrophoneIcon,
   priority: 5,
   defaultData: { phase: 'listening', words: 0, auto: true },
-  compact: { size: { width: 132, height: COMPACT_HEIGHT }, Component: Compact },
+  compact: { size: { width: 150, height: COMPACT_HEIGHT }, Component: Compact },
   minimal: Minimal,
   expanded: { size: { width: 380, height: 136 }, Component: Expanded },
   demo: {

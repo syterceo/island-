@@ -1,6 +1,7 @@
 import { PauseIcon, PlayIcon, TimerIcon, XIcon } from '@phosphor-icons/react';
 import { useEffect } from 'react';
 import { defineLiveActivity } from '../../define';
+import { T } from '../../i18n';
 import { emitEffect } from '../../effects';
 import { useNow } from '../../hooks/useNow';
 import { COMPACT_HEIGHT } from '../../metrics';
@@ -72,7 +73,9 @@ function Expanded({ data, update, dismiss }: ActivityViewProps<TimerData>) {
       </Rise>
       <span className={ui.grow} />
       <Rise i={2} className={ui.sub} style={{ color: ORANGE }}>
-        <Swap id={paused ? 'paused' : 'timer'}>{paused ? 'Paused' : 'Timer'}</Swap>
+        <Swap id={paused ? 'paused' : 'timer'} align="end">
+          <T>{paused ? 'Paused' : 'Timer'}</T>
+        </Swap>
       </Rise>
       <Rise i={3} style={{ color: ORANGE }}>
         <Digits className={ui.big} value={formatClock(remainingMs(data, now), 'ceil')} />

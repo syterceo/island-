@@ -1,5 +1,6 @@
 import { ArrowFatUpIcon, KeyboardIcon } from '@phosphor-icons/react';
 import { defineTransient } from '../../define';
+import { T } from '../../i18n';
 import { COMPACT_HEIGHT } from '../../metrics';
 import type { ActivityViewProps } from '../../types';
 import { Swap, ui } from '../../ui/kit';
@@ -17,7 +18,7 @@ function View({ data }: ActivityViewProps<KeyLockData>) {
       </span>
       <span className={`${ui.label} ${ui.grow}`}>{data.key}</span>
       <Swap id={data.on ? 'on' : 'off'} className={ui.label} align="end" style={{ color: 'var(--island-fg-2)' }}>
-        {data.on ? 'On' : 'Off'}
+        <T>{data.on ? 'On' : 'Off'}</T>
       </Swap>
     </div>
   );
