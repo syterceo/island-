@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from 'motion/react';
 import { useEffect, type MouseEvent } from 'react';
 import { appOf, type AppId } from '../../apps';
 import { defineLiveActivity } from '../../define';
+import { T } from '../../i18n';
 import { useNow } from '../../hooks/useNow';
 import { COMPACT_HEIGHT } from '../../metrics';
 import { fx, tween } from '../../motion/springs';
@@ -114,7 +115,7 @@ function Expanded({ data, update }: ActivityViewProps<MusicData>) {
       <div className={cx(ui.stack, ui.grow)} style={{ gap: 0, height: '100%', padding: '2px 4px 0 0' }}>
         <Rise i={1} className={ui.stack}>
           <span className={ui.caption} style={{ color: 'var(--island-tint)' }}>
-            Playing on {appOf(data.source).name}
+            <T>Playing on</T> {appOf(data.source).name}
           </span>
           <Swap id={data.index} className={ui.title} style={{ fontSize: 17, marginTop: 3 }} truncate>
             {track.title}
@@ -126,7 +127,7 @@ function Expanded({ data, update }: ActivityViewProps<MusicData>) {
         <span className={ui.grow} />
         <Rise i={2} className={ui.row} style={{ gap: 9 }}>
           <span className={ui.time}>{formatClock(at)}</span>
-          <div className={ui.scrub} onClick={seek}>
+          <div className={ui.scrub} data-no-gesture onClick={seek}>
             <span
               className={ui.scrubFill}
               style={{ transform: `scaleX(${at / track.durationMs})`, background: 'var(--island-tint)' }}
@@ -184,6 +185,7 @@ export default defineLiveActivity<MusicData>({
   minimal: Minimal,
   expanded: { size: { width: 420, height: 148, radius: 30 }, Component: Expanded },
   Controller,
+  onSwipe: (api, direction) => skip(api.update, direction),
   demo: {
     presets: [
       { label: 'SoundCloud', data: from('soundcloud', 0) },

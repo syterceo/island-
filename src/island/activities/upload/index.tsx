@@ -1,6 +1,7 @@
 import { ArrowDownIcon, CloudArrowUpIcon, FileIcon } from '@phosphor-icons/react';
 import { useEffect } from 'react';
 import { defineLiveActivity } from '../../define';
+import { T } from '../../i18n';
 import { COMPACT_HEIGHT } from '../../metrics';
 import { scaled } from '../../motion/springs';
 import { useIslandStore } from '../../store';
@@ -52,7 +53,7 @@ function DropTarget() {
         <rect x="1" y="1" rx="19" style={{ width: 'calc(100% - 2px)', height: 'calc(100% - 2px)' }} />
       </svg>
       <CloudArrowUpIcon size={30} weight="fill" />
-      Drop files or click to choose
+      <T>Drop files or click to choose</T>
       <input
         type="file"
         multiple
@@ -71,7 +72,9 @@ function FileList({ files }: { files: UploadFile[] }) {
   return (
     <>
       <div className={ui.row} style={{ gap: 8 }}>
-        <span className={ui.title}>Uploading {count(files)}</span>
+        <span className={ui.title}>
+          <T>{`Uploading ${count(files)}`}</T>
+        </span>
         <span className={ui.grow} />
         <span className={ui.sub} style={{ fontVariantNumeric: 'tabular-nums' }}>
           {Math.round(total(files) * 100)}%

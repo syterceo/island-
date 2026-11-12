@@ -1,6 +1,7 @@
 import { LockIcon, LockOpenIcon } from '@phosphor-icons/react';
 import { useEffect, useState } from 'react';
 import { defineTransient } from '../../define';
+import { T } from '../../i18n';
 import { emitEffect } from '../../effects';
 import { COMPACT_HEIGHT } from '../../metrics';
 import { scaled } from '../../motion/springs';
@@ -25,7 +26,7 @@ function View() {
         )}
       </Swap>
       <Swap id={open ? 'open' : 'locked'} className={ui.label}>
-        {open ? 'Welcome back' : 'Looking for you'}
+        <T>{open ? 'Welcome back' : 'Looking for you'}</T>
       </Swap>
     </div>
   );
@@ -37,6 +38,6 @@ export default defineTransient<Record<string, never>>({
   description: 'Sign in confirmation: the lock opens with a small bump.',
   icon: LockOpenIcon,
   defaultData: {},
-  view: { size: { width: 172, height: COMPACT_HEIGHT }, Component: View },
+  view: { size: { width: 178, height: COMPACT_HEIGHT }, Component: View },
   duration: 2000,
 });

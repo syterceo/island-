@@ -11,6 +11,7 @@ import {
 import { useEffect } from 'react';
 import { APPS } from '../../apps';
 import { defineLiveActivity } from '../../define';
+import { T } from '../../i18n';
 import { useNow } from '../../hooks/useNow';
 import { COMPACT_HEIGHT } from '../../metrics';
 import { scaled } from '../../motion/springs';
@@ -50,7 +51,8 @@ function Compact({ data }: ActivityViewProps<DiscordData>) {
     return (
       <div className={ui.compact} style={{ gap: 9, justifyContent: 'flex-start', padding: '0 13px 0 7px' }}>
         <AppTile app="discord" />
-        <span className={cx(ui.label, ui.shimmer)}>{data.caller} is calling</span>
+        <span className={cx(ui.label, ui.shimmer)}>{data.caller} <T>is calling</T>
+        </span>
       </div>
     );
   }
@@ -84,7 +86,7 @@ function Incoming({ data, update, dismiss, collapse }: ActivityViewProps<Discord
       </Rise>
       <Rise i={1} className={cx(ui.stack, ui.grow)}>
         <span className={ui.caption} style={{ color: 'var(--island-tint)' }}>
-          Discord call
+          <T>Discord call</T>
         </span>
         <span className={ui.title} style={{ fontSize: 17 }}>
           {data.caller}
@@ -126,7 +128,7 @@ function Voice({ data, update, dismiss }: ActivityViewProps<DiscordData>) {
               dimmed={index === YOU && data.muted}
             />
             <span className={ui.sub} style={{ color: 'var(--island-fg)' }}>
-              {name}
+              <T>{name}</T>
             </span>
           </span>
         ))}
