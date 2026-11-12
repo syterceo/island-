@@ -9,9 +9,9 @@ import { motionConfig } from './config';
  */
 export const SPRING_PRESETS = {
   /** Shell growing: expand, alert takeover. */
-  morph: { visualDuration: 0.46, bounce: 0.24 },
+  morph: { visualDuration: 0.44, bounce: 0.14 },
   /** Shell shrinking back. */
-  collapse: { visualDuration: 0.4, bounce: 0.12 },
+  collapse: { visualDuration: 0.38, bounce: 0 },
   /** Content settling into a view. */
   content: { visualDuration: 0.36, bounce: 0 },
   /** Press feedback, toggles, icon swaps. */

@@ -16,5 +16,7 @@ export { emitEffect, onEffect } from './effects';
 export { installDebugApi } from './debug';
 export { Island } from './shell/Island';
 export { APPS, appOf, type AppId, type AppInfo } from './apps';
+export { BRAND } from './brands';
+export { AppTile } from './ui/kit';
 export { T, translate, useLanguage, useT } from './i18n';
 export * from './metrics';

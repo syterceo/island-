@@ -14,12 +14,10 @@ interface Banner {
 interface NotificationData extends Banner {
   /** Earlier banners that arrived while this alert was on screen, oldest first. */
   stack: Banner[];
-  /** Which banner is in front, counted from the oldest. Null is the newest. */
+  /** Which banner is shown, counted from the oldest. Null is the newest. */
   page: number | null;
 }
 
-const BANNER_HEIGHT = 64;
-const EDGE = 7;
 const MAX_STACK = 4;
 
 const all = (data: NotificationData): Banner[] => [...data.stack, data];
@@ -33,49 +31,38 @@ function View({ data, update }: ActivityViewProps<NotificationData>) {
   const banners = all(data);
   const page = pageOf(data);
   const banner = banners[page];
-  const behind = Math.min(data.stack.length, 2);
   return (
-    <div style={{ position: 'relative', width: '100%', height: '100%' }}>
-      <div className={ui.expanded} style={{ height: BANNER_HEIGHT, gap: 12, padding: '0 12px 0 13px' }}>
-        <Swap id={`${page}-${banner.app}`} dy={0} fit={false}>
-          <AppTile app={banner.app} size={38} />
-        </Swap>
-        <Swap id={`${page}-${banner.title}`} className={ui.grow} truncate>
-          <span className={ui.stack}>
-            <span className={ui.row} style={{ gap: 8 }}>
-              <span className={cx(ui.title, ui.grow)}>
-                <T>{banner.title}</T>
-              </span>
-              <span className={ui.caption} style={{ color: appOf(banner.app).color }}>
-                {appOf(banner.app).name}
-              </span>
+    <div className={ui.expanded} style={{ gap: 12, padding: '0 12px 0 13px' }}>
+      <Swap id={`${page}-${banner.app}`} dy={0} fit={false}>
+        <AppTile app={banner.app} size={38} />
+      </Swap>
+      <Swap id={`${page}-${banner.title}`} className={ui.grow} truncate>
+        <span className={ui.stack}>
+          <span className={ui.row} style={{ gap: 8 }}>
+            <span className={cx(ui.title, ui.grow)}>
+              <T>{banner.title}</T>
             </span>
-            <span className={ui.sub}>
-              <T>{banner.body}</T>
-            </span>
+            <span className={ui.caption}>{appOf(banner.app).name}</span>
           </span>
-        </Swap>
-        {banners.length > 1 && (
-          <span className={ui.row} style={{ gap: 2, flex: 'none' }}>
-            <IconButton label="Earlier" tone="ghost" size={24} onClick={() => flip(update, -1)}>
-              <CaretLeftIcon size={12} weight="bold" />
-            </IconButton>
-            <span className={cx(ui.caption, ui.num)}>
-              {page + 1}/{banners.length}
-            </span>
-            <IconButton label="Later" tone="ghost" size={24} onClick={() => flip(update, 1)}>
-              <CaretRightIcon size={12} weight="bold" />
-            </IconButton>
+          <span className={ui.sub}>
+            <T>{banner.body}</T>
           </span>
-        )}
-      </div>
-      {Array.from({ length: behind }, (_, index) => (
-        <span
-          key={index}
-          className={ui.stackEdge}
-          style={{ top: BANNER_HEIGHT + index * EDGE, marginInline: 18 * (index + 1), opacity: 1 - index * 0.4 }}
-        />
-      ))}
+        </span>
+      </Swap>
+      {/* Several notifications share one banner: the counter says which one is shown. */}
+      {banners.length > 1 && (
+        <span className={ui.row} style={{ gap: 2, flex: 'none' }}>
+          <IconButton label="Earlier" tone="ghost" size={24} onClick={() => flip(update, -1)}>
+            <CaretLeftIcon size={12} weight="bold" />
+          </IconButton>
+          <span className={cx(ui.caption, ui.num)}>
+            {page + 1}/{banners.length}
+          </span>
+          <IconButton label="Later" tone="ghost" size={24} onClick={() => flip(update, 1)}>
+            <CaretRightIcon size={12} weight="bold" />
+          </IconButton>
+        </span>
+      )}
     </div>
   );
 }
@@ -90,21 +77,14 @@ const PRESETS: Record<string, Banner> = {
 export default defineTransient<NotificationData>({
   kind: 'notification',
   title: 'Notification',
-  description: 'Banners from apps. Several in a row stack up and can be flipped through or swiped.',
+  description: 'Banners from apps. Several in a row are counted and can be flipped through or swiped.',
   icon: BellIcon,
   tint: (data) => appOf(all(data)[pageOf(data)].app).color,
   defaultData: { ...PRESETS.telegram, stack: [], page: null },
-  view: {
-    size: (data) => ({
-      width: 384,
-      height: BANNER_HEIGHT + Math.min(data.stack.length, 2) * EDGE,
-      radius: 28,
-    }),
-    Component: View,
-  },
+  view: { size: { width: 384, height: 64, radius: 28 }, Component: View },
   duration: 4200,
   interruptive: true,
-  // A new banner goes in front and the one it replaces joins the stack.
+  // A new banner is shown and the one it replaces is kept behind it.
   merge: (current, incoming) => ({
     ...incoming,
     stack: [...current.stack, { app: current.app, title: current.title, body: current.body }].slice(-MAX_STACK),

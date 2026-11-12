@@ -54,8 +54,15 @@ const LIGHT_HEIGHT = 22;
 // corners of the silhouette and its own circular ones.
 const SHADOW_INSET = 2;
 
-type GeoKey = 'w' | 'h' | 'r' | 'x' | 'att' | 'bx' | 'bs' | 'br';
+type GeoKey = 'w' | 'h' | 'r' | 'x' | 'att' | 'bs' | 'br';
 type Geometry = Record<GeoKey, MotionValue<number>>;
+
+/**
+ * Centre of the bubble, relative to the centre line. It always sits one gap to the right of the
+ * main shape as that shape is right now, so the two can never overlap during a morph.
+ */
+const bubbleCentre = (geo: Geometry) => geo.x.get() + geo.w.get() / 2 + BUBBLE_GAP + BUBBLE_SIZE / 2;
+
 
 function useGeometry(initial: Record<GeoKey, number>): Geometry {
   const ref = useRef<Geometry | null>(null);
@@ -126,7 +133,7 @@ export function Island() {
   const bubbleRef = useRef<HTMLDivElement>(null);
   const bubbleShadowRef = useRef<HTMLDivElement>(null);
   const hoverTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
-  const [hovered, setHovered] = useState(false);
+
 
   useFileDrop();
 
@@ -161,37 +168,33 @@ export function Island() {
   const soften = (value: number) => Math.min(value, MIN_RADIUS + (value - MIN_RADIUS) * settings.roundness);
   // With a bubble the pair is centred, so the main shape shifts left by half the bubble footprint.
   const shift = bubble ? -(BUBBLE_GAP + BUBBLE_SIZE) / 2 : 0;
-  const lift = hovered && !expanded && mode !== 'transient' && settings.expandTrigger === 'click' ? 1 : 0;
 
   const target: Record<GeoKey, number> = {
-    w: width + lift * 6,
-    h: height + lift * 2,
+    w: width,
+    h: height,
     r: soften(radius),
     x: shift,
     att: floating ? 1 : 0,
-    // Hidden, the bubble rests inside the right end of the main shape and grows out of it.
-    bx: bubble ? shift + width / 2 + lift * 3 + BUBBLE_GAP + BUBBLE_SIZE / 2 : width / 2 - BUBBLE_SIZE / 2,
-    bs: bubble ? 1 : 0.5,
+    bs: bubble ? 1 : 0,
     br: soften(BUBBLE_SIZE / 2),
   };
   const geo = useGeometry(target);
 
-  const previous = useRef({ area: target.w * target.h, lift });
+  const previous = useRef({ area: target.w * target.h, bubble: Boolean(bubble) });
   useEffect(() => {
     const area = target.w * target.h;
-    const edges =
-      previous.current.lift !== lift
-        ? spring('snappy', { bounce: 0 })
-        : spring(area >= previous.current.area ? 'morph' : 'collapse');
-    // Same timing without the overshoot, for everything that moves content.
-    const steady = { ...edges, bounce: 0 };
-    previous.current = { area, lift };
+    const timing = spring(area >= previous.current.area ? 'morph' : 'collapse');
+    // Without the overshoot, for everything that moves content. The bubble hangs on the right
+    // edge of the main shape, so while there is one the edges must not overshoot either.
+    const steady = { ...timing, bounce: 0 };
+    const edges = bubble || previous.current.bubble ? steady : timing;
+    previous.current = { area, bubble: Boolean(bubble) };
     for (const key of Object.keys(target) as GeoKey[]) {
       animate(geo[key], target[key], key === 'w' || key === 'h' ? edges : steady);
     }
     // The target is fully described by its numbers.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [target.w, target.h, target.r, target.x, target.att, target.bx, target.bs, target.br]);
+  }, [target.w, target.h, target.r, target.x, target.att, target.bs, target.br]);
 
   const { surface } = settings;
   // The blur behind glass follows the clip box, which has circular corners.
@@ -208,8 +211,8 @@ export function Island() {
       // Halfway through an attachment change the top corners are square.
       const ear = Math.max(0, 1 - att * 2);
       const top = Math.max(0, att * 2 - 1);
-      // At rest inside the main shape the bubble is left out, so translucent surfaces show no seam.
-      const bubbleOut = scale > 0.505;
+      // The bubble grows down out of the top edge beside the main shape, and shrinks back into it.
+      const bubbleOut = scale > 0.02;
       const side = BUBBLE_SIZE * scale;
       const bubbleRadius = geo.br.get();
 
@@ -226,7 +229,7 @@ export function Island() {
       if (bubbleOut) {
         // The bubble is a small island of its own, so it meets the screen edge the same way.
         d += islandPath({
-          cx: CX + geo.bx.get(),
+          cx: CX + bubbleCentre(geo),
           top: PAD_TOP,
           width: side,
           height: side,
@@ -339,7 +342,6 @@ export function Island() {
   });
 
   const onPointerEnter = () => {
-    setHovered(true);
     clearTimeout(hoverTimer.current);
     const store = useIslandStore.getState();
     if (store.transient) store.holdTransient(true);
@@ -348,7 +350,6 @@ export function Island() {
     }
   };
   const onPointerLeave = () => {
-    setHovered(false);
     clearTimeout(hoverTimer.current);
     const store = useIslandStore.getState();
     if (store.transient) store.holdTransient(false);
@@ -361,12 +362,22 @@ export function Island() {
   // The last bubble stays rendered while its shape retreats into the main one.
   const lastBubble = useRef<ResolvedView | null>(bubble);
   if (bubble) lastBubble.current = bubble;
-  const shownBubble = bubble ?? lastBubble.current;
-  const bubbleOpacity = useTransform(geo.bs, [0.62, 1], [0, 1]);
+  // ...and is unmounted once it is gone, so nothing invisible keeps riding the edge.
+  const [bubbleGone, setBubbleGone] = useState(!bubble);
+  useEffect(() => {
+    if (bubble) {
+      setBubbleGone(false);
+      return;
+    }
+    const timer = setTimeout(() => setBubbleGone(true), scaled(0.7) * 1000);
+    return () => clearTimeout(timer);
+  }, [bubble]);
+  const shownBubble = bubble ?? (bubbleGone ? null : lastBubble.current);
+  const bubbleOpacity = useTransform(geo.bs, [0.45, 1], [0, 1]);
   // Elements get derived copies: a motion element stops the values it is bound to when it unmounts,
   // which would cancel the geometry springs in the middle of a swap.
   const viewX = useTransform(geo.x, (value) => value);
-  const bubbleX = useTransform(geo.bx, (value) => value);
+  const bubbleX = useTransform(() => bubbleCentre(geo));
   const bubbleScale = useTransform(geo.bs, (value) => value);
 
   const accent = settings.accent === 'fg' ? 'var(--island-fg)' : settings.accent;

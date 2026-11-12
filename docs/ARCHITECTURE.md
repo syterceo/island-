@@ -243,6 +243,19 @@ npm run capture -- --spec shots.json --outdir captures
 (`--set`), other pages (`--path "/?view=gallery" --clip full`) and the dark backdrop
 (`--path "/?view=stage&bg=dark"`). `captures/` is git ignored.
 
+## Calm by default
+
+Motion is spent on changes of state, not on decoration. Clocks update as plain tabular text
+(`Digits` rolls only with `roll`, used for a score). Small swaps fade and slide without blur. The
+island does not grow on hover. `bump` is reserved for a moment worth attention: a goal, a meeting
+starting. The bubble of a second activity grows down out of the top edge one gap to the right of
+the main shape as that shape is at that instant (`bubbleCentre`), so the two never overlap during
+a morph; while a bubble is present the edges of the main shape do not overshoot.
+
+App icons are the real logos: `brands.ts` holds their path data, copied from Simple Icons (CC0),
+and `apps.ts` says how each sits on its tile. `AppTile` draws them, in the island and in the
+playground alike.
+
 ## Gestures, language and themes
 
 `shell/useGestures.ts` adds three gestures on top of click: a horizontal swipe calls the main
