@@ -2,7 +2,6 @@ import { LockIcon, LockOpenIcon } from '@phosphor-icons/react';
 import { useEffect, useState } from 'react';
 import { defineTransient } from '../../define';
 import { T } from '../../i18n';
-import { emitEffect } from '../../effects';
 import { COMPACT_HEIGHT } from '../../metrics';
 import { scaled } from '../../motion/springs';
 import { Swap, ui } from '../../ui/kit';
@@ -12,7 +11,6 @@ function View() {
   useEffect(() => {
     const timer = setTimeout(() => {
       setOpen(true);
-      emitEffect('bump');
     }, scaled(520));
     return () => clearTimeout(timer);
   }, []);
@@ -35,7 +33,7 @@ function View() {
 export default defineTransient<Record<string, never>>({
   kind: 'unlock',
   title: 'Windows Hello',
-  description: 'Sign in confirmation: the lock opens with a small bump.',
+  description: 'Sign in confirmation: the lock opens.',
   icon: LockOpenIcon,
   defaultData: {},
   view: { size: { width: 178, height: COMPACT_HEIGHT }, Component: View },

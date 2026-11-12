@@ -1,7 +1,6 @@
 import { PauseIcon, PlayIcon, SkipForwardIcon, TargetIcon, XIcon } from '@phosphor-icons/react';
 import { useEffect } from 'react';
 import { defineLiveActivity } from '../../define';
-import { emitEffect } from '../../effects';
 import { useNow } from '../../hooks/useNow';
 import { T } from '../../i18n';
 import { COMPACT_HEIGHT } from '../../metrics';
@@ -41,7 +40,6 @@ function advance(api: Pick<ActivityApi<FocusData>, 'update' | 'dismiss' | 'data'
       ? { phase: 'break', endsAt: Date.now() + prev.breakMs, pausedMs: null }
       : { phase: 'work', round: prev.round + 1, endsAt: Date.now() + prev.workMs, pausedMs: null },
   );
-  emitEffect('bump');
 }
 
 /** The ring aims at where it will be at the next tick and takes exactly that long to get there. */

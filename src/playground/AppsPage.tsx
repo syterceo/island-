@@ -1,4 +1,4 @@
-import { APPS, type AppId, T, useIslandStore } from '@/island';
+import { APPS, type AppId, AppTile, T, useIslandStore } from '@/island';
 import { Section } from './controls';
 import css from './playground.module.css';
 
@@ -98,13 +98,11 @@ export function AppsPage() {
     <Section title="Connected apps" hint="each app tints the island with its own colour">
       <div className={css.cards}>
         {INTEGRATIONS.map(({ app, hint, actions }) => {
-          const { name, color, ink, icon: AppIcon } = APPS[app];
+          const { name } = APPS[app];
           return (
             <div key={app} className={css.card}>
               <div className={css.cardHead}>
-                <span className={css.cardIcon} style={{ background: color, color: ink }}>
-                  <AppIcon size={19} weight="fill" />
-                </span>
+                <AppTile app={app} size={34} />
                 <div className={css.cardText}>
                   <strong>{name}</strong>
                   <span>
